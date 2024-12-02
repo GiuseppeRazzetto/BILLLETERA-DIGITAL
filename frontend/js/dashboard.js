@@ -1,7 +1,11 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Dashboard: Iniciando...');
     // Verificar sesión primero
     const token = localStorage.getItem('session_token');
+    console.log('Dashboard: Token encontrado:', token ? 'Sí' : 'No');
+    
     if (!token) {
+        console.log('Dashboard: No hay token, redirigiendo a login');
         window.location.href = 'login.html';
         return;
     }
@@ -96,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     async function checkSession() {
+        console.log('Dashboard: Verificando sesión...');
         try {
             const response = await fetch('https://digital-wallet2-backend.onrender.com/api/auth/check_session.php', {
                 headers: {
@@ -103,25 +108,30 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             
+            console.log('Dashboard: Respuesta de check_session:', response.status);
+            
             if (!response.ok) {
                 throw new Error('Sesión inválida');
             }
 
             const data = await response.json();
+            console.log('Dashboard: Datos de sesión:', data);
+            
             if (data.success) {
                 userEmail.textContent = data.data.email;
-                loadWalletData();
+                await loadWalletData();
             } else {
                 throw new Error(data.message);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Dashboard: Error en checkSession:', error);
             localStorage.removeItem('session_token');
             window.location.href = 'login.html';
         }
     }
 
     async function loadWalletData() {
+        console.log('Dashboard: Cargando datos de wallet...');
         try {
             const response = await fetch('https://digital-wallet2-backend.onrender.com/api/wallet/balance.php', {
                 headers: {
@@ -129,11 +139,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
             
+            console.log('Dashboard: Respuesta de balance:', response.status);
+            
             if (!response.ok) {
                 throw new Error('Error al cargar datos');
             }
 
             const data = await response.json();
+            console.log('Dashboard: Datos de wallet:', data);
+            
             if (data.success) {
                 updateBalance(data.data.balance);
                 updateTransactions(data.data.transactions);
@@ -141,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error(data.message);
             }
         } catch (error) {
+            console.error('Dashboard: Error en loadWalletData:', error);
             showToast('Error', error.message, 'error');
         }
     }
@@ -270,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         await checkSession();
     } catch (error) {
-        console.error('Error al verificar sesión:', error);
+        console.error('Dashboard: Error al verificar sesión:', error);
         localStorage.removeItem('session_token');
         window.location.href = 'login.html';
         return;
