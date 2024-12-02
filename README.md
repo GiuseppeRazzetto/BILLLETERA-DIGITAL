@@ -71,3 +71,13 @@ digital-wallet2/
 - Login attempt tracking
 - CORS configuration
 - Environment-specific database settings
+
+## Enlaces útiles
+
+### Base de datos
+- Ver base de datos (producción): [https://digital-wallet2-backend.onrender.com/api/wallet/view_database.php](https://digital-wallet2-backend.onrender.com/api/wallet/view_database.php)
+- Ver base de datos (local): [http://localhost/digital-wallet2/backend/api/wallet/view_database.php](http://localhost/digital-wallet2/backend/api/wallet/view_database.php)
+
+### Aplicación
+- Frontend (producción): [https://giusepperazzetto.github.io/digital-wallet2/](https://giusepperazzetto.github.io/digital-wallet2/)
+- Backend (producción): [https://digital-wallet2-backend.onrender.com/](https://digital-wallet2-backend.onrender.com/)
