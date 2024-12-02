@@ -2,17 +2,15 @@
 require_once '../config/database.prod.php';
 
 try {
-    $conn = new PDO(
-        "mysql:host=$host;charset=utf8mb4",
-        $username_db,
-        $password_db,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
+    // Intentar conectar directamente a la base de datos
+    $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
+    $conn = new PDO($dsn, $username_db, $password_db, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
-    // Crear la base de datos si no existe
-    $conn->exec("CREATE DATABASE IF NOT EXISTS $dbname");
-    $conn->exec("USE $dbname");
-
+    // Crear las tablas
     // Crear la tabla users
     $conn->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -67,6 +65,11 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Error: ' . $e->getMessage(),
+        'details' => [
+            'host' => $host,
+            'dbname' => $dbname,
+            'username' => $username_db
+        ]
     ]);
 }
