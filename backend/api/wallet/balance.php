@@ -14,12 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
+    error_log("Balance.php: Iniciando...");
+    
     // Verificar el token de la sesión
     $user = validateSessionToken();
+    error_log("Balance.php: Usuario validado: " . json_encode($user));
     
     if ($user) {
         // Obtener información de la billetera
-        $wallet_query = "SELECT w.*, 
+        $wallet_query = "SELECT w.id, w.balance, 
             (SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'id', t.id,
@@ -36,25 +39,42 @@ try {
         FROM wallets w 
         WHERE w.user_id = ?";
         
+        error_log("Balance.php: Ejecutando query para user_id: " . $user['id']);
+        
         $stmt = $conn->prepare($wallet_query);
+        if (!$stmt) {
+            error_log("Balance.php: Error en prepare: " . $conn->error);
+            throw new Exception('Error al preparar la consulta');
+        }
+        
         $stmt->bind_param("i", $user['id']);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            error_log("Balance.php: Error en execute: " . $stmt->error);
+            throw new Exception('Error al ejecutar la consulta');
+        }
+        
         $result = $stmt->get_result();
         $wallet = $result->fetch_assoc();
+        
+        error_log("Balance.php: Resultado de wallet: " . json_encode($wallet));
 
         if ($wallet) {
             $transactions = json_decode($wallet['recent_transactions'] ?? '[]');
-            echo json_encode([
+            $response = [
                 'success' => true,
                 'data' => [
                     'balance' => $wallet['balance'],
                     'transactions' => $transactions
                 ]
-            ]);
+            ];
+            error_log("Balance.php: Respuesta exitosa: " . json_encode($response));
+            echo json_encode($response);
         } else {
+            error_log("Balance.php: No se encontró la billetera para el usuario: " . $user['id']);
             throw new Exception('Billetera no encontrada');
         }
     } else {
+        error_log("Balance.php: Usuario no autorizado");
         throw new Exception('Usuario no autorizado');
     }
 } catch (Exception $e) {
