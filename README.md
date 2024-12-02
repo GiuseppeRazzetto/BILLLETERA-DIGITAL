@@ -1,47 +1,73 @@
 # Digital Wallet 2
 
-Una aplicación web de billetera digital que permite a los usuarios gestionar sus finanzas.
+A modern digital wallet web application with PHP backend and MySQL database.
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 digital-wallet2/
-├── frontend/           # Archivos del frontend
-│   ├── css/           # Estilos CSS
-│   ├── js/            # Scripts JavaScript
-│   ├── login.html     # Página de inicio de sesión
-│   ├── register.html  # Página de registro
-│   └── dashboard.html # Panel principal
-├── backend/           # API y lógica del servidor
-│   ├── api/          # Endpoints de la API
-│   ├── config/       # Configuración
-│   └── Dockerfile    # Configuración de Docker
-└── index.html        # Redirección al frontend
+├── backend/
+│   ├── api/
+│   │   └── setup_db.php
+│   ├── config/
+│   │   ├── database.php
+│   │   └── database.prod.php
+│   ├── Dockerfile
+│   ├── index.php
+│   └── test_db.php
+├── frontend/
+│   ├── css/
+│   ├── js/
+│   └── login.html
+└── README.md
 ```
 
-## URLs de Producción
-
-- Frontend: https://giusepperazzetto.github.io/digital-wallet2/frontend/login.html
-- Backend: https://digital-wallet2-backend.onrender.com/
-
-## Tecnologías Utilizadas
+## Technologies Used
 
 - Frontend: HTML, CSS, JavaScript
 - Backend: PHP 8.0
-- Base de datos: MySQL
-- Despliegue: GitHub Pages (frontend) y Render (backend)
+- Database: MySQL
+- Development: XAMPP
+- Deployment: 
+  - Frontend: GitHub Pages
+  - Backend: Render
+  - Database: FreeSQLDatabase
 
-## Desarrollo Local
+## Development Setup
 
-1. Clonar el repositorio
-2. Configurar XAMPP o servidor PHP local
-3. Importar la base de datos
-4. Configurar las variables de entorno
+1. Clone the repository
+2. Install XAMPP with PHP 8.0
+3. Copy the project to `htdocs` directory
+4. Configure database credentials in `backend/config/database.php`
 
-## Características
+## Deployment
 
-- Registro y autenticación de usuarios
-- Gestión de billetera digital
-- Transferencias entre usuarios
-- Historial de transacciones
-- Token personal de seguridad
+### Frontend
+- Hosted on GitHub Pages
+- Access at: https://giusepperazzetto.github.io/digital-wallet2/frontend/login.html
+
+### Backend
+- Hosted on Render
+- Base URL: https://digital-wallet2-backend.onrender.com
+- Endpoints:
+  - `/` - API status
+  - `/test_db.php` - Database connection test
+  - `/api/setup_db.php` - Database setup
+
+### Database
+- Host: sql10.freesqldatabase.com
+- Configured tables:
+  - users
+  - currencies
+  - wallets
+  - transactions
+  - sessions
+  - login_attempts
+
+## Security Features
+
+- Secure password hashing
+- Session management
+- Login attempt tracking
+- CORS configuration
+- Environment-specific database settings
