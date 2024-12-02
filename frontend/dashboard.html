@@ -445,18 +445,18 @@
                     <form id="transfer-form">
                         <div class="mb-3">
                             <label for="transfer-email" class="form-label">Email del Destinatario</label>
-                            <input type="email" class="form-control" id="transfer-email" required>
+                            <input type="email" class="form-control" id="transfer-email" name="email_destino" required>
                         </div>
                         <div class="mb-3">
                             <label for="transfer-amount" class="form-label">Monto a Transferir</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" class="form-control" id="transfer-amount" min="1" step="0.01" required>
+                                <input type="number" class="form-control" id="transfer-amount" name="monto" min="1" step="0.01" required>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label for="transfer-description" class="form-label">Descripción</label>
-                            <input type="text" class="form-control" id="transfer-description">
+                            <input type="text" class="form-control" id="transfer-description" name="descripcion">
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Confirmar Transferencia</button>
