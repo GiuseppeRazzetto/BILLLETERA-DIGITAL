@@ -6,7 +6,7 @@ function verifySessionToken($conn, $session_token) {
     }
 
     $query = "
-        SELECT u.id, u.nombre, u.apellido, u.token_personal, w.id as wallet_id 
+        SELECT u.id, u.correo_electronico as email, u.nombre, u.apellido, u.token_personal, w.id as wallet_id 
         FROM users u 
         JOIN sessions s ON u.id = s.user_id 
         JOIN wallets w ON u.id = w.user_id 
