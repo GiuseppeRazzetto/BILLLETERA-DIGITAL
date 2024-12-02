@@ -6,8 +6,16 @@ require_once '../../utils/auth_utils.php';
 header('Content-Type: application/json');
 
 try {
-    // Verificar el token de la sesión
-    $user = validateSessionToken();
+    // Obtener el token del header
+    $headers = getallheaders();
+    $auth_header = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    
+    if (!$auth_header || !preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
+        throw new Exception('Token no proporcionado');
+    }
+    
+    $token = $matches[1];
+    $user = verifySessionToken($conn, $token);
     
     if ($user) {
         // Obtener información de la billetera
@@ -25,6 +33,7 @@ try {
         echo json_encode([
             'success' => true,
             'data' => [
+                'id' => $user['id'],
                 'email' => $user['email'],
                 'nombre' => $user['nombre'],
                 'apellido' => $user['apellido'],
