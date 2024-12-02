@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const registerForm = document.getElementById('register-form');
     const errorDiv = document.getElementById('error-message');
+    const API_URL = 'https://digital-wallet2-backend.onrender.com/';
 
     function showError(message) {
         errorDiv.textContent = message;
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch('/digital-wallet2/backend/api/register.php', {
+            const response = await fetch(API_URL + 'api/register.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

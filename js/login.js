@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    const API_URL = 'https://digital-wallet2-backend.onrender.com/';
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -107,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch('/digital-wallet2/backend/api/login.php', {
+                const response = await fetch(API_URL + 'api/login.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch('/digital-wallet2/backend/api/login.php', {
+            const response = await fetch(API_URL + 'api/login.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
