@@ -266,6 +266,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     throw new Error('Tipo de transacción inválido');
             }
 
+            console.log('Enviando datos de transacción:', {
+                tipo,
+                endpoint,
+                data
+            });
+
             const response = await fetch(`https://digital-wallet2-backend.onrender.com/api/wallet/${endpoint}`, {
                 method: 'POST',
                 headers: {
@@ -276,15 +282,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
 
             const responseData = await response.json();
+            console.log('Respuesta del servidor:', responseData);
             
             if (responseData.success) {
                 showToast('Éxito', responseData.message);
                 loadWalletData();
                 return true;
             } else {
-                throw new Error(responseData.message);
+                throw new Error(responseData.message || 'Error al procesar la transacción');
             }
         } catch (error) {
+            console.error('Error en handleTransaction:', error);
             showToast('Error', error.message, 'error');
             return false;
         }

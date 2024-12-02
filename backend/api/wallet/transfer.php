@@ -21,18 +21,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    $data = json_decode(file_get_contents('php://input'), true);
+    error_log("Transfer.php - Iniciando transferencia");
+    
+    $input = file_get_contents('php://input');
+    error_log("Transfer.php - Datos recibidos: " . $input);
+    
+    $data = json_decode($input, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Error al decodificar JSON: ' . json_last_error_msg());
+    }
     
     if (!isset($data['monto']) || !isset($data['token_personal']) || !isset($data['email_destino'])) {
-        throw new Exception('Datos incompletos');
+        throw new Exception('Datos incompletos: ' . implode(', ', array_keys($data)));
     }
 
     if (!is_numeric($data['monto']) || $data['monto'] <= 0) {
-        throw new Exception('Monto inválido');
+        throw new Exception('Monto inválido: ' . $data['monto']);
     }
 
+    error_log("Transfer.php - Autenticando usuario");
     $user = requireAuthentication($conn);
     verifyPersonalToken($conn, $user['id'], $data['token_personal']);
+
+    error_log("Transfer.php - Usuario autenticado: " . json_encode($user));
 
     // Iniciar transacción
     $conn->begin_transaction();
@@ -43,7 +54,7 @@ try {
             SELECT u.id, w.id as wallet_id 
             FROM users u 
             JOIN wallets w ON u.id = w.user_id 
-            WHERE u.correo_electronico = ?
+            WHERE u.email = ?
         ');
         $stmt->bind_param('s', $data['email_destino']);
         $stmt->execute();
@@ -58,59 +69,52 @@ try {
             throw new Exception('No puedes transferir a tu propia billetera');
         }
 
-        // Verificar balance suficiente
-        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE user_id = ? FOR UPDATE');
-        $stmt->bind_param('i', $user['id']);
+        // Verificar fondos suficientes
+        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE id = ?');
+        $stmt->bind_param('i', $user['wallet_id']);
         $stmt->execute();
         $result = $stmt->get_result();
-        $current_balance = $result->fetch_assoc();
+        $wallet = $result->fetch_assoc();
 
-        if ($current_balance['balance'] < $data['monto']) {
-            throw new Exception('Saldo insuficiente');
+        if ($wallet['balance'] < $data['monto']) {
+            throw new Exception('Fondos insuficientes');
         }
 
-        // Restar de la billetera origen
-        $stmt = $conn->prepare('
-            UPDATE wallets 
-            SET balance = balance - ? 
-            WHERE user_id = ?
-        ');
-        $stmt->bind_param('di', $data['monto'], $user['id']);
-        $stmt->execute();
+        error_log("Transfer.php - Actualizando balances");
 
-        // Sumar a la billetera destino
-        $stmt = $conn->prepare('
-            UPDATE wallets 
-            SET balance = balance + ? 
-            WHERE user_id = ?
-        ');
-        $stmt->bind_param('di', $data['monto'], $destino['id']);
-        $stmt->execute();
+        // Actualizar balance del remitente
+        $stmt = $conn->prepare('UPDATE wallets SET balance = balance - ? WHERE id = ?');
+        $stmt->bind_param('di', $data['monto'], $user['wallet_id']);
+        if (!$stmt->execute()) {
+            throw new Exception('Error al actualizar balance del remitente: ' . $stmt->error);
+        }
+
+        // Actualizar balance del destinatario
+        $stmt = $conn->prepare('UPDATE wallets SET balance = balance + ? WHERE id = ?');
+        $stmt->bind_param('di', $data['monto'], $destino['wallet_id']);
+        if (!$stmt->execute()) {
+            throw new Exception('Error al actualizar balance del destinatario: ' . $stmt->error);
+        }
 
         // Registrar transacción
-        $descripcion = $data['descripcion'] ?? 'Transferencia enviada a ' . $data['email_destino'];
+        $descripcion = isset($data['descripcion']) ? $data['descripcion'] : 'Transferencia';
         $stmt = $conn->prepare('
             INSERT INTO transactions (wallet_id, tipo, monto, descripcion, wallet_from_id, wallet_to_id) 
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, "transferencia", ?, ?, ?, ?)
         ');
-        $stmt->bind_param('idsiii', $user['wallet_id'], 'transferencia', $data['monto'], $descripcion, $user['wallet_id'], $destino['wallet_id']);
-        $stmt->execute();
+        $stmt->bind_param('idsii', $user['wallet_id'], $data['monto'], $descripcion, $user['wallet_id'], $destino['wallet_id']);
+        if (!$stmt->execute()) {
+            throw new Exception('Error al registrar la transacción: ' . $stmt->error);
+        }
 
-        // Obtener nuevo balance
-        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE user_id = ?');
-        $stmt->bind_param('i', $user['id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $nuevo_balance = $result->fetch_assoc();
+        error_log("Transfer.php - Transacción completada con éxito");
 
         $conn->commit();
-
         echo json_encode([
             'success' => true,
-            'message' => 'Transferencia realizada correctamente',
+            'message' => 'Transferencia realizada con éxito',
             'data' => [
-                'nuevo_balance' => $nuevo_balance['balance'],
-                'monto_transferido' => $data['monto'],
+                'monto' => $data['monto'],
                 'destinatario' => $data['email_destino']
             ]
         ]);
