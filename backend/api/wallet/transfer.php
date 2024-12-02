@@ -134,7 +134,7 @@ try {
         }
 
         // Registrar transacción para el emisor (monto negativo)
-        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, created_at) VALUES (?, ?, ?, ?, NOW())');
+        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
         $tipo_transaccion = "enviada";
         $monto_negativo = -$data['monto'];
         $stmt->bind_param('idss', $user['wallet_id'], $monto_negativo, $tipo_transaccion, $data['descripcion']);
@@ -143,7 +143,7 @@ try {
         }
 
         // Registrar transacción para el receptor (monto positivo)
-        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, created_at) VALUES (?, ?, ?, ?, NOW())');
+        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
         $tipo_transaccion = "recibida";
         $monto_positivo = $data['monto'];
         $stmt->bind_param('idss', $destino['wallet_id'], $monto_positivo, $tipo_transaccion, $data['descripcion']);
