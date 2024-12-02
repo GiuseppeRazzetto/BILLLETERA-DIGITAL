@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     if (!token) {
         console.log('Dashboard: No hay token, redirigiendo a login');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 3 segundos
         window.location.href = 'login.html';
         return;
     }
@@ -109,12 +110,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
             
             console.log('Dashboard: Respuesta de check_session:', response.status);
+            const responseText = await response.text();
+            console.log('Dashboard: Respuesta completa:', responseText);
             
             if (!response.ok) {
-                throw new Error('Sesión inválida');
+                throw new Error(`Sesión inválida: ${responseText}`);
             }
 
-            const data = await response.json();
+            const data = JSON.parse(responseText);
             console.log('Dashboard: Datos de sesión:', data);
             
             if (data.success) {
@@ -125,6 +128,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         } catch (error) {
             console.error('Dashboard: Error en checkSession:', error);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 3 segundos
             localStorage.removeItem('session_token');
             window.location.href = 'login.html';
         }
@@ -286,6 +290,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         await checkSession();
     } catch (error) {
         console.error('Dashboard: Error al verificar sesión:', error);
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 3 segundos
         localStorage.removeItem('session_token');
         window.location.href = 'login.html';
         return;
