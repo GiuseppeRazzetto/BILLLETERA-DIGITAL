@@ -1,5 +1,5 @@
 <?php
-require_once '../config/database.php';
+require_once '../config/database.prod.php';
 
 try {
     $conn = new PDO(
