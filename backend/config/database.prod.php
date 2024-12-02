@@ -6,16 +6,19 @@ $username_db = 'sql10749054';
 $password_db = '6SZwPqJXNB';
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
-    $pdo = new PDO($dsn, $username_db, $password_db, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
-} catch (PDOException $e) {
+    $conn = new mysqli($host, $username_db, $password_db, $dbname, $port);
+    
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
+    }
+    
+    // Establecer charset a utf8
+    $conn->set_charset("utf8");
+    
+} catch (Exception $e) {
     die(json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage(),
+        'message' => 'Error de conexión: ' . $e->getMessage(),
         'details' => [
             'host' => $host,
             'port' => $port,
