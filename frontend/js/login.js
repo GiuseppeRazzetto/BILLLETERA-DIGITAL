@@ -30,7 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch(`${API_URL}/api/login.php`, {
+                console.log('Enviando token:', { email, token_personal: token });
+                
+                const response = await fetch(`${API_URL}/api/auth/login.php`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -42,18 +44,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 const data = await response.json();
+                console.log('Respuesta del servidor:', data);
                 
-                if (data.success) {
+                if (data.success && data.data && data.data.session_token) {
                     localStorage.setItem('session_token', data.data.session_token);
                     localStorage.setItem('user_email', data.data.user.email);
                     window.location.href = 'dashboard.html';
                 } else {
-                    const errorData = data.message ? JSON.parse(data.message) : null;
-                    if (errorData && errorData.blocked) {
-                        showError(errorData.message);
-                    } else {
-                        showError(errorData ? errorData.message : 'Token incorrecto');
-                    }
+                    showError(data.message || 'Error al iniciar sesión');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -71,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/login.php`, {
+            const response = await fetch(`${API_URL}/api/auth/login.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -84,15 +82,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             
-            if (data.success && data.require_token) {
+            if (data.success && data.data && data.data.session_token) {
+                localStorage.setItem('session_token', data.data.session_token);
+                localStorage.setItem('user_email', data.data.user.email);
+                window.location.href = 'dashboard.html';
+            } else if (data.require_token) {
                 showTokenInput();
             } else {
-                const errorData = data.message ? JSON.parse(data.message) : null;
-                if (errorData && errorData.blocked) {
-                    showError(errorData.message);
-                } else {
-                    showError(errorData ? errorData.message : 'Credenciales inválidas');
-                }
+                showError(data.message || 'Error al iniciar sesión');
             }
         } catch (error) {
             console.error('Error:', error);
@@ -142,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tokenInput.addEventListener('input', function(e) {
                 this.value = this.value.replace(/\D/g, '').slice(0, 4);
             });
+            tokenInput.focus();
         }
     }
 });
