@@ -14,6 +14,46 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $data = json_decode(file_get_contents('php://input'), true);
 
+    // Verificar si es login con token personal
+    if (isset($data['token_personal']) && isset($data['email'])) {
+        // Buscar usuario por email
+        $query = "SELECT id, correo_electronico, nombre, apellido, token_personal FROM users WHERE correo_electronico = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("s", $data['email']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        if (!$user || $user['token_personal'] !== $data['token_personal']) {
+            throw new Exception('Token personal inválido');
+        }
+
+        // Generar token de sesión
+        $session_token = bin2hex(random_bytes(32));
+        $expiration = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+        // Guardar sesión
+        $query = "INSERT INTO sessions (user_id, token, expiration) VALUES (?, ?, ?)";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("iss", $user['id'], $session_token, $expiration);
+        $stmt->execute();
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'session_token' => $session_token,
+                'user' => [
+                    'id' => $user['id'],
+                    'nombre' => $user['nombre'],
+                    'apellido' => $user['apellido'],
+                    'email' => $user['correo_electronico']
+                ]
+            ]
+        ]);
+        exit;
+    }
+
+    // Login normal con email y password
     if (!$data || !isset($data['email']) || !isset($data['password'])) {
         throw new Exception('Datos incompletos');
     }
