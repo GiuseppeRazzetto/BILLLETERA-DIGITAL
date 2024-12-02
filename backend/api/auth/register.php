@@ -1,11 +1,11 @@
 <?php
 require_once '../../utils/cors.php';
+require_once '../../config/database.prod.php';
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
-
-require_once '../../config/database.prod.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -32,9 +32,11 @@ try {
     }
 
     // Verificar si el email ya existe
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE correo_electronico = ?');
-    $stmt->execute([$data['email']]);
-    if ($stmt->fetch()) {
+    $stmt = $conn->prepare('SELECT id FROM users WHERE correo_electronico = ?');
+    $stmt->bind_param("s", $data['email']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->fetch_assoc()) {
         throw new Exception('El email ya está registrado');
     }
 
@@ -42,27 +44,33 @@ try {
     $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
 
     // Insertar nuevo usuario
-    $stmt = $pdo->prepare('INSERT INTO users (correo_electronico, contrasena_hash, nombre, apellido, token_personal) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([
+    $stmt = $conn->prepare('INSERT INTO users (correo_electronico, contrasena_hash, nombre, apellido, token_personal) VALUES (?, ?, ?, ?, ?)');
+    $stmt->bind_param("sssss", 
         $data['email'],
         $password_hash,
         $data['nombre'],
         $data['apellido'],
         $data['token_personal']
-    ]);
+    );
+    $stmt->execute();
+    
+    if ($stmt->affected_rows > 0) {
+        // Crear wallet para el nuevo usuario
+        $user_id = $stmt->insert_id;
+        $stmt = $conn->prepare('INSERT INTO wallets (user_id, balance) VALUES (?, 0.00)');
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
 
-    $userId = $pdo->lastInsertId();
-
-    // Crear wallet para el usuario
-    $stmt = $pdo->prepare('INSERT INTO wallets (user_id, balance) VALUES (?, 0.00)');
-    $stmt->execute([$userId]);
-
-    echo json_encode([
-        'success' => true,
-        'message' => 'Usuario registrado correctamente'
-    ]);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Usuario registrado correctamente'
+        ]);
+    } else {
+        throw new Exception('Error al registrar el usuario');
+    }
 
 } catch (Exception $e) {
+    error_log("Error en register.php: " . $e->getMessage());
     http_response_code(400);
     echo json_encode([
         'success' => false,
