@@ -2,11 +2,11 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-$host = 'sql.freedb.tech';
+$host = 'sql10.freesqldatabase.com';
 $port = 3306;
-$dbname = 'freedb_digital_wallet2';
-$username_db = 'freedb_giuseppe';
-$password_db = 'Kh4M%*wJ2Nq4xE@';
+$dbname = 'sql10749054';
+$username_db = 'sql10749054';
+$password_db = '6SZwPqJXNB';
 
 try {
     echo "Intentando conectar a la base de datos...\n";

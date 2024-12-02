@@ -1,9 +1,9 @@
 <?php
-$host = 'sql.freedb.tech'; // Quitamos el puerto de la URL
-$port = 3306;  // Lo especificamos por separado
-$dbname = 'freedb_digital_wallet2';
-$username_db = 'freedb_giuseppe';
-$password_db = 'Kh4M%*wJ2Nq4xE@';
+$host = 'sql10.freesqldatabase.com';
+$port = 3306;
+$dbname = 'sql10749054';
+$username_db = 'sql10749054';
+$password_db = '6SZwPqJXNB';
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
