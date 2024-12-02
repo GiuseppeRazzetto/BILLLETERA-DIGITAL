@@ -91,15 +91,15 @@ try {
         }
         
         $result = $stmt->get_result();
-        $destino = $result->fetch_assoc();
+        $destinatario = $result->fetch_assoc();
 
-        if (!$destino) {
+        if (!$destinatario) {
             throw new Exception('Usuario destino no encontrado');
         }
 
-        error_log("Transfer.php - Usuario destino encontrado: " . json_encode($destino));
+        error_log("Transfer.php - Usuario destino encontrado: " . json_encode($destinatario));
 
-        if ($destino['id'] === $user['id']) {
+        if ($destinatario['id'] === $user['id']) {
             throw new Exception('No puedes transferir a tu propia billetera');
         }
 
@@ -128,25 +128,25 @@ try {
 
         // Actualizar balance del destinatario
         $stmt = prepareStatement($conn, 'UPDATE wallets SET balance = balance + ? WHERE id = ?');
-        $stmt->bind_param('di', $data['monto'], $destino['wallet_id']);
+        $stmt->bind_param('di', $data['monto'], $destinatario['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception('Error al actualizar balance del destinatario: ' . $stmt->error);
         }
 
         // Registrar transacción para el emisor (monto negativo)
-        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
-        $tipo_transaccion = "enviada";
+        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) VALUES (?, ?, ?, ?, NOW(), ?, ?)');
+        $tipo_transaccion = "transferencia";
         $monto_negativo = -$data['monto'];
-        $stmt->bind_param('idsss', $user['wallet_id'], $monto_negativo, $tipo_transaccion, $data['descripcion']);
+        $stmt->bind_param('idsiii', $user['wallet_id'], $monto_negativo, $tipo_transaccion, $data['descripcion'], $user['wallet_id'], $destinatario['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del emisor: " . $stmt->error);
         }
 
         // Registrar transacción para el receptor (monto positivo)
-        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
-        $tipo_transaccion = "recibida";
+        $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) VALUES (?, ?, ?, ?, NOW(), ?, ?)');
+        $tipo_transaccion = "transferencia";
         $monto_positivo = $data['monto'];
-        $stmt->bind_param('idsss', $destino['wallet_id'], $monto_positivo, $tipo_transaccion, $data['descripcion']);
+        $stmt->bind_param('idsiii', $destinatario['wallet_id'], $monto_positivo, $tipo_transaccion, $data['descripcion'], $user['wallet_id'], $destinatario['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del receptor: " . $stmt->error);
         }
@@ -165,7 +165,7 @@ try {
 
         $responseData = [
             'monto' => floatval($data['monto']),
-            'destinatario' => $destino['email'],
+            'destinatario' => $destinatario['email'],
             'nuevo_balance' => floatval($nuevo_balance['balance'])
         ];
 
