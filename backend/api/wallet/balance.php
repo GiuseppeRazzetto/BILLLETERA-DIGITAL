@@ -1,6 +1,6 @@
 <?php
 require_once '../../utils/cors.php';
-require_once '../../config/database.php';
+require_once '../../config/database.prod.php';
 require_once '../../utils/auth_utils.php';
 
 header('Content-Type: application/json');
@@ -50,7 +50,8 @@ try {
         throw new Exception('Usuario no autorizado');
     }
 } catch (Exception $e) {
-    http_response_code(401);
+    error_log("Error en balance.php: " . $e->getMessage());
+    http_response_code(400);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
