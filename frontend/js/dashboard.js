@@ -188,32 +188,32 @@ document.addEventListener('DOMContentLoaded', async function() {
             switch(transaction.tipo) {
                 case 'deposito':
                     typeText = 'Depósito';
-                    amountClass = 'text-success';
+                    amountClass = 'transaction-amount deposit';
                     amountPrefix = '+';
                     break;
                 case 'retiro':
                     typeText = 'Retiro';
-                    amountClass = 'text-danger';
+                    amountClass = 'transaction-amount withdraw';
                     amountPrefix = '-';
                     break;
                 case 'transferencia':
                     if (transaction.wallet_from_id === transaction.wallet_id) {
                         typeText = 'Transferencia enviada';
-                        amountClass = 'text-danger';
+                        amountClass = 'transaction-amount transfer-out';
                         amountPrefix = '-';
                     } else {
                         typeText = 'Transferencia recibida';
-                        amountClass = 'text-success';
+                        amountClass = 'transaction-amount transfer-in';
                         amountPrefix = '+';
                     }
                     break;
             }
             
             row.innerHTML = `
-                <td>${formatDate(transaction.fecha)}</td>
+                <td>${formatDate(transaction.created_at)}</td>
                 <td>${typeText}</td>
-                <td class="${amountClass}">${amountPrefix}${formatCurrency(transaction.monto)}</td>
-                <td>${transaction.descripcion || '-'}</td>
+                <td>${transaction.description || '-'}</td>
+                <td class="${amountClass}">${amountPrefix}${formatCurrency(transaction.amount)}</td>
             `;
             
             transactionsList.appendChild(row);
