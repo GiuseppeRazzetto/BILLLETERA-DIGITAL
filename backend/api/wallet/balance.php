@@ -21,8 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
+    error_log("Balance.php - Iniciando...");
+    
     // Verificar si hay una sesión activa
     $user = validateSessionToken();
+    error_log("Balance.php - Resultado validateSessionToken: " . ($user ? json_encode($user) : 'null'));
     
     if (!$user) {
         throw new Exception('No hay sesión activa');
@@ -31,37 +34,58 @@ try {
     $user_id = $user['id'];
     error_log("Balance.php - User ID: " . $user_id);
     
+    // Verificar conexión a la base de datos
+    if (!$conn) {
+        error_log("Balance.php - Error: No hay conexión a la base de datos");
+        throw new Exception("No hay conexión a la base de datos");
+    }
+    
+    error_log("Balance.php - Conexión a base de datos establecida");
+    
     // Obtener el wallet del usuario
     $stmt = $conn->prepare("SELECT id, balance FROM wallets WHERE user_id = ?");
     if (!$stmt) {
+        error_log("Balance.php - Error preparando consulta: " . $conn->error);
         throw new Exception("Error preparando consulta: " . $conn->error);
     }
     
+    error_log("Balance.php - Consulta preparada");
+    
     $stmt->bind_param("i", $user_id);
     if (!$stmt->execute()) {
+        error_log("Balance.php - Error ejecutando consulta: " . $stmt->error);
         throw new Exception("Error ejecutando consulta: " . $stmt->error);
     }
     
+    error_log("Balance.php - Consulta ejecutada");
+    
     $result = $stmt->get_result();
+    error_log("Balance.php - Número de filas: " . $result->num_rows);
     
     // Si no existe wallet, crear uno
     if ($result->num_rows === 0) {
+        error_log("Balance.php - Creando nuevo wallet para usuario " . $user_id);
+        
         $create_stmt = $conn->prepare("INSERT INTO wallets (user_id, balance) VALUES (?, 0.00)");
         if (!$create_stmt) {
+            error_log("Balance.php - Error preparando inserción: " . $conn->error);
             throw new Exception("Error preparando inserción: " . $conn->error);
         }
         
         $create_stmt->bind_param("i", $user_id);
         if (!$create_stmt->execute()) {
+            error_log("Balance.php - Error creando wallet: " . $create_stmt->error);
             throw new Exception("Error creando wallet: " . $create_stmt->error);
         }
         
         $wallet_id = $create_stmt->insert_id;
         $balance = "0.00";
+        error_log("Balance.php - Nuevo wallet creado con ID: " . $wallet_id);
     } else {
         $wallet = $result->fetch_assoc();
         $wallet_id = $wallet['id'];
         $balance = $wallet['balance'];
+        error_log("Balance.php - Wallet existente encontrado. ID: " . $wallet_id . ", Balance: " . $balance);
     }
     
     // Obtener las últimas transacciones
@@ -74,13 +98,17 @@ try {
     ");
     
     if (!$trans_stmt) {
+        error_log("Balance.php - Error preparando consulta de transacciones: " . $conn->error);
         throw new Exception("Error preparando consulta de transacciones: " . $conn->error);
     }
     
     $trans_stmt->bind_param("i", $wallet_id);
     if (!$trans_stmt->execute()) {
+        error_log("Balance.php - Error consultando transacciones: " . $trans_stmt->error);
         throw new Exception("Error consultando transacciones: " . $trans_stmt->error);
     }
+    
+    error_log("Balance.php - Consulta de transacciones ejecutada");
     
     $trans_result = $trans_stmt->get_result();
     $transactions = [];
@@ -95,6 +123,8 @@ try {
         ];
     }
     
+    error_log("Balance.php - Transacciones recuperadas: " . count($transactions));
+    
     $response = [
         'success' => true,
         'data' => [
@@ -104,11 +134,11 @@ try {
         ]
     ];
     
-    error_log("Balance.php - Respuesta: " . json_encode($response));
+    error_log("Balance.php - Respuesta final: " . json_encode($response));
     echo json_encode($response);
     
 } catch (Exception $e) {
-    error_log("Error en balance.php: " . $e->getMessage());
+    error_log("Error en balance.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
