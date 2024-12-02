@@ -27,6 +27,16 @@ function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
     exit;
 }
 
+// Función para preparar consulta SQL de manera segura
+function prepareStatement($conn, $query) {
+    $stmt = $conn->prepare($query);
+    if ($stmt === false) {
+        error_log("Error en preparación de consulta SQL: " . $conn->error);
+        throw new Exception("Error en la base de datos: " . $conn->error);
+    }
+    return $stmt;
+}
+
 // Manejar solicitud OPTIONS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     sendJsonResponse(true, 'OK');
@@ -62,18 +72,24 @@ try {
     error_log("Transfer.php - Usuario autenticado: " . json_encode($user));
 
     // Iniciar transacción
-    $conn->begin_transaction();
+    if (!$conn->begin_transaction()) {
+        throw new Exception('Error al iniciar la transacción: ' . $conn->error);
+    }
 
     try {
         // Obtener usuario destino
-        $stmt = $conn->prepare('
+        $stmt = prepareStatement($conn, '
             SELECT u.id, w.id as wallet_id, u.email 
             FROM users u 
             JOIN wallets w ON u.id = w.user_id 
             WHERE u.email = ?
         ');
+        
         $stmt->bind_param('s', $data['email_destino']);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            throw new Exception('Error al buscar usuario destino: ' . $stmt->error);
+        }
+        
         $result = $stmt->get_result();
         $destino = $result->fetch_assoc();
 
@@ -88,9 +104,12 @@ try {
         }
 
         // Verificar fondos suficientes
-        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE id = ?');
+        $stmt = prepareStatement($conn, 'SELECT balance FROM wallets WHERE id = ?');
         $stmt->bind_param('i', $user['wallet_id']);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            throw new Exception('Error al verificar balance: ' . $stmt->error);
+        }
+        
         $result = $stmt->get_result();
         $wallet = $result->fetch_assoc();
 
@@ -101,14 +120,14 @@ try {
         error_log("Transfer.php - Actualizando balances");
 
         // Actualizar balance del remitente
-        $stmt = $conn->prepare('UPDATE wallets SET balance = balance - ? WHERE id = ?');
+        $stmt = prepareStatement($conn, 'UPDATE wallets SET balance = balance - ? WHERE id = ?');
         $stmt->bind_param('di', $data['monto'], $user['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception('Error al actualizar balance del remitente: ' . $stmt->error);
         }
 
         // Actualizar balance del destinatario
-        $stmt = $conn->prepare('UPDATE wallets SET balance = balance + ? WHERE id = ?');
+        $stmt = prepareStatement($conn, 'UPDATE wallets SET balance = balance + ? WHERE id = ?');
         $stmt->bind_param('di', $data['monto'], $destino['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception('Error al actualizar balance del destinatario: ' . $stmt->error);
@@ -116,7 +135,7 @@ try {
 
         // Registrar transacción
         $descripcion = isset($data['descripcion']) ? $data['descripcion'] : 'Transferencia';
-        $stmt = $conn->prepare('
+        $stmt = prepareStatement($conn, '
             INSERT INTO transactions (wallet_id, tipo, monto, descripcion, wallet_from_id, wallet_to_id) 
             VALUES (?, "transferencia", ?, ?, ?, ?)
         ');
@@ -126,9 +145,12 @@ try {
         }
 
         // Obtener el nuevo balance
-        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE id = ?');
+        $stmt = prepareStatement($conn, 'SELECT balance FROM wallets WHERE id = ?');
         $stmt->bind_param('i', $user['wallet_id']);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            throw new Exception('Error al obtener nuevo balance: ' . $stmt->error);
+        }
+        
         $result = $stmt->get_result();
         $nuevo_balance = $result->fetch_assoc();
 
@@ -140,7 +162,10 @@ try {
             'nuevo_balance' => floatval($nuevo_balance['balance'])
         ];
 
-        $conn->commit();
+        if (!$conn->commit()) {
+            throw new Exception('Error al confirmar la transacción: ' . $conn->error);
+        }
+
         error_log("Transfer.php - Enviando respuesta: " . json_encode($responseData));
         sendJsonResponse(true, 'Transferencia realizada con éxito', $responseData);
 
