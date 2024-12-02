@@ -1,7 +1,10 @@
 <?php
-require_once '../../utils/cors.php';
 require_once '../../config/database.prod.php';
+require_once '../../utils/cors.php';
 require_once '../../utils/auth_utils.php';
+
+// Asegurarse de que no haya salida antes de los headers
+ob_clean();
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
@@ -14,72 +17,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    error_log("Balance.php: Iniciando...");
-    
-    // Verificar el token de la sesión
+    // Verificar si hay una sesión activa
     $user = validateSessionToken();
-    error_log("Balance.php: Usuario validado: " . json_encode($user));
     
-    if ($user) {
-        // Obtener información de la billetera
-        $wallet_query = "SELECT w.id, w.balance, 
-            (SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'id', t.id,
-                    'type', t.type,
-                    'amount', t.amount,
-                    'description', t.description,
-                    'created_at', t.created_at
-                )
-            )
-            FROM transactions t 
-            WHERE t.wallet_id = w.id 
-            ORDER BY t.created_at DESC 
-            LIMIT 10) as recent_transactions
-        FROM wallets w 
-        WHERE w.user_id = ?";
-        
-        error_log("Balance.php: Ejecutando query para user_id: " . $user['id']);
-        
-        $stmt = $conn->prepare($wallet_query);
-        if (!$stmt) {
-            error_log("Balance.php: Error en prepare: " . $conn->error);
-            throw new Exception('Error al preparar la consulta');
-        }
-        
-        $stmt->bind_param("i", $user['id']);
-        if (!$stmt->execute()) {
-            error_log("Balance.php: Error en execute: " . $stmt->error);
-            throw new Exception('Error al ejecutar la consulta');
-        }
-        
-        $result = $stmt->get_result();
-        $wallet = $result->fetch_assoc();
-        
-        error_log("Balance.php: Resultado de wallet: " . json_encode($wallet));
-
-        if ($wallet) {
-            $transactions = json_decode($wallet['recent_transactions'] ?? '[]');
-            $response = [
-                'success' => true,
-                'data' => [
-                    'balance' => $wallet['balance'],
-                    'transactions' => $transactions
-                ]
-            ];
-            error_log("Balance.php: Respuesta exitosa: " . json_encode($response));
-            echo json_encode($response);
-        } else {
-            error_log("Balance.php: No se encontró la billetera para el usuario: " . $user['id']);
-            throw new Exception('Billetera no encontrada');
-        }
-    } else {
-        error_log("Balance.php: Usuario no autorizado");
-        throw new Exception('Usuario no autorizado');
+    if (!$user) {
+        throw new Exception('No hay sesión activa');
     }
+    
+    $user_id = $user['id'];
+    
+    // Obtener el wallet_id del usuario
+    $stmt = $conn->prepare("SELECT w.id, w.balance, w.user_id FROM wallets w WHERE w.user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    
+    if (!$stmt->execute()) {
+        error_log("Error ejecutando consulta de wallet: " . $stmt->error);
+        throw new Exception("Error al consultar el wallet");
+    }
+    
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        // Si no existe wallet, crear uno
+        $create_wallet = $conn->prepare("INSERT INTO wallets (user_id, balance) VALUES (?, 0.00)");
+        $create_wallet->bind_param("i", $user_id);
+        
+        if (!$create_wallet->execute()) {
+            error_log("Error creando wallet: " . $create_wallet->error);
+            throw new Exception("Error al crear wallet");
+        }
+        
+        $wallet_id = $create_wallet->insert_id;
+        $balance = "0.00";
+    } else {
+        $wallet = $result->fetch_assoc();
+        $wallet_id = $wallet['id'];
+        $balance = $wallet['balance'];
+    }
+    
+    // Obtener las últimas 5 transacciones
+    $trans_stmt = $conn->prepare("
+        SELECT id, type, amount, description, created_at 
+        FROM transactions 
+        WHERE wallet_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT 5
+    ");
+    $trans_stmt->bind_param("i", $wallet_id);
+    
+    if (!$trans_stmt->execute()) {
+        error_log("Error consultando transacciones: " . $trans_stmt->error);
+        throw new Exception("Error al consultar transacciones");
+    }
+    
+    $trans_result = $trans_stmt->get_result();
+    $transactions = [];
+    
+    while ($row = $trans_result->fetch_assoc()) {
+        $transactions[] = [
+            'id' => $row['id'],
+            'type' => $row['type'],
+            'amount' => $row['amount'],
+            'description' => $row['description'],
+            'created_at' => $row['created_at']
+        ];
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'data' => [
+            'wallet_id' => $wallet_id,
+            'balance' => $balance,
+            'transactions' => $transactions
+        ]
+    ]);
+    
 } catch (Exception $e) {
     error_log("Error en balance.php: " . $e->getMessage());
-    http_response_code(400);
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
