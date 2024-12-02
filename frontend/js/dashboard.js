@@ -138,7 +138,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Dashboard: Cargando datos de wallet...');
         try {
             const response = await fetch('https://digital-wallet2-backend.onrender.com/api/wallet/balance.php', {
+                method: 'GET',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 }
             });
@@ -160,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         } catch (error) {
             console.error('Dashboard: Error en loadWalletData:', error);
-            showToast('Error', error.message, 'error');
+            showToast('Error', 'Error al cargar los datos de la wallet', 'error');
         }
     }
 
@@ -285,25 +287,50 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Iniciar verificación de sesión y carga de datos
-    try {
-        await checkSession();
-    } catch (error) {
-        console.error('Dashboard: Error al verificar sesión:', error);
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 3 segundos
-        localStorage.removeItem('session_token');
-        window.location.href = 'login.html';
-        return;
+    // Event Listeners para los formularios de transacciones
+    function showTokenInput(form) {
+        // Remover el campo de token si ya existe
+        const existingToken = form.querySelector('.token-field');
+        if (existingToken) {
+            existingToken.remove();
+        }
+
+        // Crear el nuevo campo de token
+        const tokenDiv = document.createElement('div');
+        tokenDiv.className = 'mb-3 token-field';
+        tokenDiv.innerHTML = `
+            <label for="token_personal" class="form-label">Token Personal (4 dígitos)</label>
+            <input type="text" class="form-control text-center" name="token_personal" maxlength="4" required pattern="[0-9]{4}" inputmode="numeric" style="letter-spacing: 8px; font-size: 1.2em;">
+            <div class="form-text text-center">Ingrese los 4 dígitos de su token personal</div>
+        `;
+        
+        // Insertar el campo de token antes del botón submit
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.parentNode.insertBefore(tokenDiv, submitButton);
+        }
+
+        // Agregar evento para solo permitir números
+        const tokenInput = form.querySelector('input[name="token_personal"]');
+        if (tokenInput) {
+            tokenInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 4);
+            });
+            tokenInput.focus();
+        }
     }
 
-    // Event Listeners
     if (depositForm) {
         depositForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            const success = await handleTransaction('deposit', formData);
-            if (success) {
-                depositModal.hide();
+            
+            if (!formData.get('token_personal')) {
+                showTokenInput(this);
+                return;
+            }
+
+            if (await handleTransaction('deposit', formData)) {
                 this.reset();
             }
         });
@@ -313,9 +340,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         withdrawForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            const success = await handleTransaction('withdraw', formData);
-            if (success) {
-                withdrawModal.hide();
+            
+            if (!formData.get('token_personal')) {
+                showTokenInput(this);
+                return;
+            }
+
+            if (await handleTransaction('withdraw', formData)) {
                 this.reset();
             }
         });
@@ -325,9 +356,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         transferForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            const success = await handleTransaction('transfer', formData);
-            if (success) {
-                transferModal.hide();
+            
+            if (!formData.get('token_personal')) {
+                showTokenInput(this);
+                return;
+            }
+
+            if (await handleTransaction('transfer', formData)) {
                 this.reset();
             }
         });
@@ -338,5 +373,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             localStorage.removeItem('session_token');
             window.location.href = 'login.html';
         });
+    }
+
+    // Iniciar verificación de sesión y carga de datos
+    try {
+        await checkSession();
+    } catch (error) {
+        console.error('Dashboard: Error al verificar sesión:', error);
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Esperar 3 segundos
+        localStorage.removeItem('session_token');
+        window.location.href = 'login.html';
+        return;
     }
 });
