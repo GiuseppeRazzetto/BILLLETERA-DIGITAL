@@ -3,7 +3,8 @@ require_once '../../config/database.prod.php';
 require_once '../../utils/cors.php';
 require_once '../../utils/auth_utils.php';
 
-header('Content-Type: application/json');
+// Configurar headers CORS y JSON
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
@@ -51,7 +52,7 @@ try {
     try {
         // Obtener usuario destino
         $stmt = $conn->prepare('
-            SELECT u.id, w.id as wallet_id 
+            SELECT u.id, w.id as wallet_id, u.email 
             FROM users u 
             JOIN wallets w ON u.id = w.user_id 
             WHERE u.email = ?
@@ -64,6 +65,8 @@ try {
         if (!$destino) {
             throw new Exception('Usuario destino no encontrado');
         }
+
+        error_log("Transfer.php - Usuario destino encontrado: " . json_encode($destino));
 
         if ($destino['id'] === $user['id']) {
             throw new Exception('No puedes transferir a tu propia billetera');
@@ -107,17 +110,29 @@ try {
             throw new Exception('Error al registrar la transacción: ' . $stmt->error);
         }
 
+        // Obtener el nuevo balance
+        $stmt = $conn->prepare('SELECT balance FROM wallets WHERE id = ?');
+        $stmt->bind_param('i', $user['wallet_id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $nuevo_balance = $result->fetch_assoc();
+
         error_log("Transfer.php - Transacción completada con éxito");
 
-        $conn->commit();
-        echo json_encode([
+        $response = [
             'success' => true,
             'message' => 'Transferencia realizada con éxito',
             'data' => [
-                'monto' => $data['monto'],
-                'destinatario' => $data['email_destino']
+                'monto' => floatval($data['monto']),
+                'destinatario' => $destino['email'],
+                'nuevo_balance' => floatval($nuevo_balance['balance'])
             ]
-        ]);
+        ];
+
+        $conn->commit();
+        
+        error_log("Transfer.php - Enviando respuesta: " . json_encode($response));
+        echo json_encode($response);
 
     } catch (Exception $e) {
         $conn->rollback();
@@ -126,9 +141,11 @@ try {
 
 } catch (Exception $e) {
     error_log("Error en transfer.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    http_response_code(500);
-    echo json_encode([
+    http_response_code(400);
+    $error_response = [
         'success' => false,
         'message' => $e->getMessage()
-    ]);
+    ];
+    error_log("Transfer.php - Enviando error: " . json_encode($error_response));
+    echo json_encode($error_response);
 }
