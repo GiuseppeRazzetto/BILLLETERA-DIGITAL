@@ -30,14 +30,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    error_log("verify_token.php - Iniciando verificación de token");
+    
+    // Verificar conexión a la base de datos
+    if (!$conn) {
+        error_log("verify_token.php - Error: No hay conexión a la base de datos");
+        throw new Exception("No hay conexión a la base de datos");
+    }
+    
     $data = json_decode(file_get_contents('php://input'), true);
+    error_log("verify_token.php - Datos recibidos: " . json_encode($data));
     
     if (!isset($data['token_personal'])) {
+        error_log("verify_token.php - Error: Token personal no proporcionado");
         throw new Exception('Token personal no proporcionado');
     }
 
-    $user = requireAuthentication($pdo);
-    verifyPersonalToken($pdo, $user['id'], $data['token_personal']);
+    $user = requireAuthentication($conn);
+    error_log("verify_token.php - Usuario autenticado: " . json_encode($user));
+    
+    verifyPersonalToken($conn, $user['id'], $data['token_personal']);
+    error_log("verify_token.php - Token personal verificado correctamente");
 
     echo json_encode([
         'success' => true,
@@ -49,8 +62,8 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log("Error en verify_token.php: " . $e->getMessage());
-    http_response_code(400);
+    error_log("Error en verify_token.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
