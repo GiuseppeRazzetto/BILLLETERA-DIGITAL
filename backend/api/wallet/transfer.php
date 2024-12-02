@@ -1,4 +1,8 @@
 <?php
+// Deshabilitar la salida de errores HTML
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 require_once '../../config/database.prod.php';
 require_once '../../utils/cors.php';
 require_once '../../utils/auth_utils.php';
@@ -9,16 +13,27 @@ header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Manejar solicitud OPTIONS
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+// Función para enviar respuesta JSON
+function sendJsonResponse($success, $message, $data = null, $statusCode = 200) {
+    http_response_code($statusCode);
+    $response = [
+        'success' => $success,
+        'message' => $message
+    ];
+    if ($data !== null) {
+        $response['data'] = $data;
+    }
+    echo json_encode($response);
     exit;
 }
 
+// Manejar solicitud OPTIONS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    sendJsonResponse(true, 'OK');
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Método no permitido']);
-    exit;
+    sendJsonResponse(false, 'Método no permitido', null, 405);
 }
 
 try {
@@ -119,33 +134,22 @@ try {
 
         error_log("Transfer.php - Transacción completada con éxito");
 
-        $response = [
-            'success' => true,
-            'message' => 'Transferencia realizada con éxito',
-            'data' => [
-                'monto' => floatval($data['monto']),
-                'destinatario' => $destino['email'],
-                'nuevo_balance' => floatval($nuevo_balance['balance'])
-            ]
+        $responseData = [
+            'monto' => floatval($data['monto']),
+            'destinatario' => $destino['email'],
+            'nuevo_balance' => floatval($nuevo_balance['balance'])
         ];
 
         $conn->commit();
-        
-        error_log("Transfer.php - Enviando respuesta: " . json_encode($response));
-        echo json_encode($response);
+        error_log("Transfer.php - Enviando respuesta: " . json_encode($responseData));
+        sendJsonResponse(true, 'Transferencia realizada con éxito', $responseData);
 
     } catch (Exception $e) {
         $conn->rollback();
         throw $e;
     }
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log("Error en transfer.php: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    http_response_code(400);
-    $error_response = [
-        'success' => false,
-        'message' => $e->getMessage()
-    ];
-    error_log("Transfer.php - Enviando error: " . json_encode($error_response));
-    echo json_encode($error_response);
+    sendJsonResponse(false, $e->getMessage(), null, 400);
 }
