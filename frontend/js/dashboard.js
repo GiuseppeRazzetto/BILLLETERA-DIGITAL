@@ -249,15 +249,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 case 'deposit':
                     endpoint = 'deposit.php';
                     data.monto = parseFloat(formData.get('monto'));
+                    data.descripcion = formData.get('descripcion') || 'Depósito a la billetera';
                     break;
                 case 'withdraw':
                     endpoint = 'withdraw.php';
                     data.monto = parseFloat(formData.get('monto'));
+                    data.descripcion = formData.get('descripcion') || 'Retiro de la billetera';
                     break;
                 case 'transfer':
                     endpoint = 'transfer.php';
                     data.monto = parseFloat(formData.get('monto'));
                     data.email_destino = formData.get('email_destino');
+                    data.descripcion = formData.get('descripcion') || 'Transferencia';
                     break;
                 default:
                     throw new Error('Tipo de transacción inválido');
