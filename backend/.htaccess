@@ -1,10 +1,18 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ api/index.php [QSA,L]
+DirectoryIndex index.php
 
 # Enable CORS
 Header set Access-Control-Allow-Origin "https://giusepperazzetto.github.io"
 Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
 Header set Access-Control-Allow-Headers "Content-Type, Authorization"
 Header set Access-Control-Allow-Credentials "true"
+
+# Enable Rewrite Engine
+RewriteEngine On
+
+# Si el archivo o directorio no existe, redirige a index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ api/index.php [QSA,L]
+
+# Permitir acceso directo a setup_db.php
+RewriteRule ^setup_db\.php$ api/setup_db.php [L]
