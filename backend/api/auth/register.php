@@ -15,13 +15,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $data = json_decode(file_get_contents('php://input'), true);
 
-    if (!$data || !isset($data['email']) || !isset($data['password']) || !isset($data['nombre']) || !isset($data['apellido'])) {
+    if (!$data || !isset($data['email']) || !isset($data['password']) || !isset($data['nombre']) || 
+        !isset($data['apellido']) || !isset($data['token_personal'])) {
         throw new Exception('Datos incompletos');
     }
 
     // Validar email
     if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         throw new Exception('Email inválido');
+    }
+
+    // Validar token personal (4 dígitos)
+    if (!preg_match('/^[0-9]{4}$/', $data['token_personal'])) {
+        throw new Exception('El token personal debe ser de 4 dígitos');
     }
 
     // Verificar si el email ya existe
@@ -35,12 +41,13 @@ try {
     $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
 
     // Insertar nuevo usuario
-    $stmt = $pdo->prepare('INSERT INTO users (correo_electronico, contrasena_hash, nombre, apellido) VALUES (?, ?, ?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO users (correo_electronico, contrasena_hash, nombre, apellido, token_personal) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([
         $data['email'],
         $password_hash,
         $data['nombre'],
-        $data['apellido']
+        $data['apellido'],
+        $data['token_personal']
     ]);
 
     $userId = $pdo->lastInsertId();
