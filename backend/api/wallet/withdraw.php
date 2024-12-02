@@ -90,8 +90,8 @@ try {
             INSERT INTO transactions (wallet_id, tipo, monto, descripcion) 
             VALUES (?, ?, ?, ?)
         ');
-        $tipo = 'retiro';
-        $descripcion = 'Retiro de la billetera';
+        $tipo = 'Retiro';
+        $descripcion = $data['descripcion'] ?? 'Retiro de la billetera';
         $stmt->bind_param("isds", $user['wallet_id'], $tipo, $data['monto'], $descripcion);
         $stmt->execute();
         error_log("withdraw.php - Transacción registrada");

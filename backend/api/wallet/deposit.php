@@ -77,8 +77,8 @@ try {
             INSERT INTO transactions (wallet_id, tipo, monto, descripcion) 
             VALUES (?, ?, ?, ?)
         ');
-        $tipo = 'deposito';
-        $descripcion = 'Depósito a la billetera';
+        $tipo = 'Depósito';
+        $descripcion = $data['descripcion'] ?? 'Depósito a la billetera';
         $stmt->bind_param("isds", $user['wallet_id'], $tipo, $data['monto'], $descripcion);
         $stmt->execute();
         error_log("deposit.php - Transacción registrada");
