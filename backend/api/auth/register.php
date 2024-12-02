@@ -1,4 +1,5 @@
 <?php
+require_once '../../utils/cors.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
 header('Access-Control-Allow-Methods: POST');
