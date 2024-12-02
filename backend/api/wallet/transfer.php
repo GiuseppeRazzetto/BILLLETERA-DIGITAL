@@ -137,7 +137,7 @@ try {
         $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
         $tipo_transaccion = "enviada";
         $monto_negativo = -$data['monto'];
-        $stmt->bind_param('idss', $user['wallet_id'], $monto_negativo, $tipo_transaccion, $data['descripcion']);
+        $stmt->bind_param('idsss', $user['wallet_id'], $monto_negativo, $tipo_transaccion, $data['descripcion']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del emisor: " . $stmt->error);
         }
@@ -146,7 +146,7 @@ try {
         $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha) VALUES (?, ?, ?, ?, NOW())');
         $tipo_transaccion = "recibida";
         $monto_positivo = $data['monto'];
-        $stmt->bind_param('idss', $destino['wallet_id'], $monto_positivo, $tipo_transaccion, $data['descripcion']);
+        $stmt->bind_param('idsss', $destino['wallet_id'], $monto_positivo, $tipo_transaccion, $data['descripcion']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del receptor: " . $stmt->error);
         }
