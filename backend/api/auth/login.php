@@ -1,11 +1,9 @@
 <?php
 require_once '../../utils/cors.php';
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: https://giusepperazzetto.github.io');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once '../../config/database.php';
+require_once '../../utils/auth_utils.php';
 
-require_once '../../config/database.prod.php';
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -21,23 +19,31 @@ try {
     }
 
     // Verificar intentos de login
-    $stmt = $pdo->prepare('SELECT COUNT(*) FROM login_attempts WHERE email = ? AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)');
-    $stmt->execute([$data['email']]);
-    $attempts = $stmt->fetchColumn();
+    $query = "SELECT COUNT(*) as attempts FROM login_attempts WHERE email = ? AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $data['email']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $attempts = $result->fetch_assoc()['attempts'];
 
     if ($attempts >= 5) {
         throw new Exception('Demasiados intentos fallidos. Por favor, espere 15 minutos.');
     }
 
     // Buscar usuario
-    $stmt = $pdo->prepare('SELECT id, contrasena_hash, nombre, apellido FROM users WHERE correo_electronico = ?');
-    $stmt->execute([$data['email']]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $query = "SELECT id, contrasena_hash, nombre, apellido, token_personal FROM users WHERE correo_electronico = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $data['email']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
     if (!$user || !password_verify($data['password'], $user['contrasena_hash'])) {
         // Registrar intento fallido
-        $stmt = $pdo->prepare('INSERT INTO login_attempts (email, attempt_time) VALUES (?, NOW())');
-        $stmt->execute([$data['email']]);
+        $query = "INSERT INTO login_attempts (email, attempt_time) VALUES (?, NOW())";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("s", $data['email']);
+        $stmt->execute();
         
         throw new Exception('Credenciales inválidas');
     }
@@ -47,33 +53,27 @@ try {
     $expiration = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
     // Guardar sesión
-    $stmt = $pdo->prepare('INSERT INTO sessions (user_id, token, expiration) VALUES (?, ?, ?)');
-    $stmt->execute([$user['id'], $session_token, $expiration]);
+    $query = "INSERT INTO sessions (user_id, token, expiration) VALUES (?, ?, ?)";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("iss", $user['id'], $session_token, $expiration);
+    $stmt->execute();
 
-    // Actualizar token en usuario
-    $stmt = $pdo->prepare('UPDATE users SET session_token = ? WHERE id = ?');
-    $stmt->execute([$session_token, $user['id']]);
-
-    // Obtener wallet del usuario
-    $stmt = $pdo->prepare('SELECT id, balance FROM wallets WHERE user_id = ?');
-    $stmt->execute([$user['id']]);
-    $wallet = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    // Devolver respuesta exitosa
     echo json_encode([
         'success' => true,
-        'message' => 'Login exitoso',
         'data' => [
-            'user_id' => $user['id'],
-            'nombre' => $user['nombre'],
-            'apellido' => $user['apellido'],
             'session_token' => $session_token,
-            'wallet_id' => $wallet['id'],
-            'balance' => $wallet['balance']
+            'user' => [
+                'id' => $user['id'],
+                'nombre' => $user['nombre'],
+                'apellido' => $user['apellido'],
+                'email' => $data['email']
+            ]
         ]
     ]);
 
 } catch (Exception $e) {
-    http_response_code(400);
+    http_response_code(401);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
