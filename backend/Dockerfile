@@ -1,7 +1,13 @@
 FROM php:8.0-apache
 
+# Instalar dependencias
+RUN apt-get update && apt-get install -y \
+    default-mysql-client \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Instalar extensiones PHP necesarias
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql mysqli
 
 # Habilitar módulos de Apache
 RUN a2enmod rewrite
