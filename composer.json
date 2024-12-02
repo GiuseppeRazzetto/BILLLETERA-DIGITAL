@@ -1,0 +1,7 @@
+{
+    "name": "digital-wallet2/backend",
+    "description": "Digital Wallet Backend API",
+    "require": {
+        "php": "^8.0"
+    }
+}
