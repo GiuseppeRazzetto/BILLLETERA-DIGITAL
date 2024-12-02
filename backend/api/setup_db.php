@@ -3,7 +3,7 @@ require_once '../config/database.php';
 
 try {
     $conn = new PDO(
-        "mysql:host=$host",
+        "mysql:host=$host;charset=utf8mb4",
         $username_db,
         $password_db,
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
@@ -50,24 +50,6 @@ try {
         FOREIGN KEY (wallet_to_id) REFERENCES wallets(id)
     )");
 
-    // Insertar usuario de prueba si no existe
-    $stmt = $conn->prepare("SELECT id FROM users WHERE correo_electronico = ?");
-    $email = 'gi@gmail.com';
-    $stmt->execute([$email]);
-
-    if (!$stmt->fetch()) {
-        $password_hash = password_hash('123456', PASSWORD_DEFAULT);
-        $token_personal = '1234';
-        
-        $stmt = $conn->prepare("INSERT INTO users (correo_electronico, contrasena_hash, token_personal, nombre, apellido) VALUES (?, ?, ?, 'Usuario', 'Prueba')");
-        $stmt->execute([$email, $password_hash, $token_personal]);
-        
-        // Crear billetera para el usuario de prueba
-        $user_id = $conn->lastInsertId();
-        $stmt = $conn->prepare("INSERT INTO wallets (user_id) VALUES (?)");
-        $stmt->execute([$user_id]);
-    }
-
     // Crear tabla de intentos de inicio de sesión
     $conn->exec("CREATE TABLE IF NOT EXISTS login_attempts (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,7 +58,15 @@ try {
         INDEX (email, attempt_time)
     )");
 
-    echo "Base de datos configurada correctamente\n";
+    echo json_encode([
+        'success' => true,
+        'message' => 'Base de datos configurada correctamente'
+    ]);
+
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage() . "\n");
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Error: ' . $e->getMessage()
+    ]);
 }
