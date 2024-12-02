@@ -93,7 +93,14 @@ try {
     
     // Obtener las últimas transacciones
     $trans_stmt = $conn->prepare("
-        SELECT id, tipo, monto, descripcion, fecha, wallet_from_id, wallet_to_id 
+        SELECT 
+            id, 
+            tipo, 
+            monto as amount, 
+            descripcion as description, 
+            fecha as created_at, 
+            wallet_from_id, 
+            wallet_to_id 
         FROM transactions 
         WHERE wallet_id = ? 
         ORDER BY fecha DESC 
@@ -120,9 +127,9 @@ try {
         $transactions[] = [
             'id' => $row['id'],
             'tipo' => $row['tipo'],
-            'amount' => $row['monto'],
-            'description' => $row['descripcion'],
-            'created_at' => $row['fecha'],
+            'amount' => $row['amount'],
+            'description' => $row['description'],
+            'created_at' => $row['created_at'],
             'wallet_from_id' => $row['wallet_from_id'],
             'wallet_to_id' => $row['wallet_to_id']
         ];
