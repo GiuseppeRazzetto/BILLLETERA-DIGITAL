@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const withdrawForm = document.getElementById('withdraw-form');
     const transferForm = document.getElementById('transfer-form');
 
-    // Inicializar modales solo si existen
+    // Inicializar modales
     let depositModal, withdrawModal, transferModal;
     
     if (depositModalEl) {
@@ -66,13 +66,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         toastContainer.appendChild(toast);
         
-        // Agregar evento para cerrar el toast
         const closeBtn = toast.querySelector('.toast-close');
         closeBtn.addEventListener('click', () => {
             toast.remove();
         });
         
-        // Remover el toast después de 5 segundos
         setTimeout(() => {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 300);
@@ -97,251 +95,221 @@ document.addEventListener('DOMContentLoaded', function() {
         return new Date(dateString).toLocaleDateString('es-MX', options);
     }
 
-    // Verificar sesión y cargar datos
-    checkSession();
-    loadWalletData();
-
-    function checkSession() {
-        fetch('/digital-wallet2/backend/api/check_session.php', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
+    async function checkSession() {
+        try {
+            const response = await fetch('https://digital-wallet2-backend.onrender.com/api/auth/check_session.php', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
                 throw new Error('Sesión inválida');
             }
-            if (userEmail) {
-                userEmail.textContent = data.user.email;
+
+            const data = await response.json();
+            if (data.success) {
+                userEmail.textContent = data.data.email;
+                loadWalletData();
+            } else {
+                throw new Error(data.message);
             }
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error:', error);
+            localStorage.removeItem('session_token');
+            window.location.href = 'login.html';
+        }
+    }
+
+    async function loadWalletData() {
+        try {
+            const response = await fetch('https://digital-wallet2-backend.onrender.com/api/wallet/balance.php', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al cargar datos');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                updateBalance(data.data.balance);
+                updateTransactions(data.data.transactions);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            showToast('Error', error.message, 'error');
+        }
+    }
+
+    function updateBalance(balance) {
+        balanceElement.textContent = formatCurrency(balance);
+    }
+
+    function updateTransactions(transactions) {
+        transactionsList.innerHTML = '';
+        
+        if (!transactions || transactions.length === 0) {
+            transactionsList.innerHTML = '<tr><td colspan="4" class="text-center">No hay transacciones</td></tr>';
+            return;
+        }
+
+        transactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            
+            let typeText = '';
+            let amountClass = '';
+            let amountPrefix = '';
+            
+            switch(transaction.tipo) {
+                case 'deposito':
+                    typeText = 'Depósito';
+                    amountClass = 'text-success';
+                    amountPrefix = '+';
+                    break;
+                case 'retiro':
+                    typeText = 'Retiro';
+                    amountClass = 'text-danger';
+                    amountPrefix = '-';
+                    break;
+                case 'transferencia':
+                    if (transaction.wallet_from_id === transaction.wallet_id) {
+                        typeText = 'Transferencia enviada';
+                        amountClass = 'text-danger';
+                        amountPrefix = '-';
+                    } else {
+                        typeText = 'Transferencia recibida';
+                        amountClass = 'text-success';
+                        amountPrefix = '+';
+                    }
+                    break;
+            }
+            
+            row.innerHTML = `
+                <td>${formatDate(transaction.fecha)}</td>
+                <td>${typeText}</td>
+                <td class="${amountClass}">${amountPrefix}${formatCurrency(transaction.monto)}</td>
+                <td>${transaction.descripcion || '-'}</td>
+            `;
+            
+            transactionsList.appendChild(row);
+        });
+    }
+
+    async function handleTransaction(type, formData) {
+        try {
+            const token_personal = formData.get('token_personal');
+            if (!token_personal) {
+                throw new Error('Token personal requerido');
+            }
+
+            // Primero verificar el token personal
+            const verifyResponse = await fetch('https://digital-wallet2-backend.onrender.com/api/wallet/verify_token.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ token_personal })
+            });
+
+            if (!verifyResponse.ok) {
+                throw new Error('Token personal inválido');
+            }
+
+            // Si el token es válido, proceder con la transacción
+            let endpoint;
+            const data = { token_personal };
+
+            switch(type) {
+                case 'deposit':
+                    endpoint = 'deposit.php';
+                    data.monto = parseFloat(formData.get('monto'));
+                    break;
+                case 'withdraw':
+                    endpoint = 'withdraw.php';
+                    data.monto = parseFloat(formData.get('monto'));
+                    break;
+                case 'transfer':
+                    endpoint = 'transfer.php';
+                    data.monto = parseFloat(formData.get('monto'));
+                    data.email_destino = formData.get('email_destino');
+                    break;
+                default:
+                    throw new Error('Tipo de transacción inválido');
+            }
+
+            const response = await fetch(`https://digital-wallet2-backend.onrender.com/api/wallet/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            const responseData = await response.json();
+            
+            if (responseData.success) {
+                showToast('Éxito', responseData.message);
+                loadWalletData();
+                return true;
+            } else {
+                throw new Error(responseData.message);
+            }
+        } catch (error) {
+            showToast('Error', error.message, 'error');
+            return false;
+        }
+    }
+
+    // Event Listeners
+    if (depositForm) {
+        depositForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const success = await handleTransaction('deposit', formData);
+            if (success) {
+                depositModal.hide();
+                this.reset();
+            }
+        });
+    }
+
+    if (withdrawForm) {
+        withdrawForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const success = await handleTransaction('withdraw', formData);
+            if (success) {
+                withdrawModal.hide();
+                this.reset();
+            }
+        });
+    }
+
+    if (transferForm) {
+        transferForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const success = await handleTransaction('transfer', formData);
+            if (success) {
+                transferModal.hide();
+                this.reset();
+            }
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
             localStorage.removeItem('session_token');
             window.location.href = 'login.html';
         });
     }
 
-    // Función para cargar los datos de la billetera
-    function loadWalletData() {
-        console.log('Cargando datos de la billetera...');
-        
-        // Obtener el email del usuario del localStorage
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-            document.getElementById('user-email').textContent = userEmail;
-        }
-
-        fetch('/digital-wallet2/backend/api/wallet.php', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Datos recibidos:', data);
-            if (data.success) {
-                // Actualizar el balance
-                updateBalance(data.balance);
-                // Actualizar la lista de transacciones
-                updateTransactions(data.transactions);
-            } else {
-                showToast('error', 'Error', data.message || 'Error al cargar los datos');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('error', 'Error', 'Error al conectar con el servidor');
-        });
-    }
-
-    function updateBalance(balance) {
-        const balanceElement = document.getElementById('balance');
-        if (balanceElement) {
-            const amount = parseFloat(balance);
-            balanceElement.textContent = `$${amount.toFixed(2)}`;
-        }
-    }
-
-    function updateTransactions(transactions) {
-        console.log('Actualizando transacciones:', transactions);
-        const transactionsTable = document.getElementById('transactions');
-        if (!transactionsTable) {
-            console.error('No se encontró el elemento de la tabla de transacciones');
-            return;
-        }
-
-        // Limpiar la tabla actual
-        transactionsTable.innerHTML = '';
-
-        // Agregar cada transacción a la tabla
-        transactions.forEach(transaction => {
-            const row = document.createElement('tr');
-            
-            // Formatear la fecha
-            const date = new Date(transaction.fecha);
-            const formattedDate = date.toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            // Formatear el monto y determinar el tipo de transacción
-            const amount = parseFloat(transaction.monto);
-            let transactionType = '';
-            let amountClass = '';
-            let formattedAmount = '';
-            let description = transaction.descripcion || '-';
-
-            switch(transaction.tipo) {
-                case 'deposito':
-                    transactionType = 'Depósito';
-                    amountClass = 'deposit';
-                    formattedAmount = `+$${Math.abs(amount).toFixed(2)}`;
-                    break;
-                case 'retiro':
-                    transactionType = 'Retiro';
-                    amountClass = 'withdraw';
-                    formattedAmount = `-$${Math.abs(amount).toFixed(2)}`;
-                    break;
-                case 'transferencia':
-                    if (transaction.transaction_direction === 'recibida') {
-                        transactionType = 'Transferencia Recibida';
-                        amountClass = 'transfer-in';
-                        formattedAmount = `+$${Math.abs(amount).toFixed(2)}`;
-                        description = `De: <strong>${transaction.from_email}</strong>`;
-                    } else {
-                        transactionType = 'Transferencia Enviada';
-                        amountClass = 'transfer-out';
-                        formattedAmount = `-$${Math.abs(amount).toFixed(2)}`;
-                        description = `Para: <strong>${transaction.to_email}</strong>`;
-                    }
-                    break;
-                default:
-                    transactionType = 'Desconocido';
-                    amountClass = '';
-                    formattedAmount = `$${amount.toFixed(2)}`;
-            }
-
-            // Crear el contenido de la fila
-            row.innerHTML = `
-                <td>${formattedDate}</td>
-                <td>${transactionType}</td>
-                <td class="transaction-description">${description}</td>
-                <td class="transaction-amount ${amountClass}">${formattedAmount}</td>
-            `;
-
-            transactionsTable.appendChild(row);
-        });
-    }
-
-    function handleTransaction(type, formData) {
-        fetch('/digital-wallet2/backend/api/transaction.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                tipo: type,
-                ...formData
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Cerrar modal correspondiente
-                switch (type) {
-                    case 'deposito': 
-                        if (depositModal) depositModal.hide();
-                        if (depositForm) depositForm.reset();
-                        break;
-                    case 'retiro': 
-                        if (withdrawModal) withdrawModal.hide();
-                        if (withdrawForm) withdrawForm.reset();
-                        break;
-                    case 'transferencia': 
-                        if (transferModal) transferModal.hide();
-                        if (transferForm) transferForm.reset();
-                        break;
-                }
-                
-                // Recargar datos
-                loadWalletData();
-                
-                showToast('Éxito', `Transacción ${type} realizada con éxito`, 'success');
-            } else {
-                throw new Error(data.message || 'Error al procesar la transacción');
-            }
-        })
-        .catch(error => {
-            showToast('Error', error.message || 'Error al procesar la transacción', 'error');
-            console.error('Error:', error);
-        });
-    }
-
-    // Event Listeners
-    if (depositForm) {
-        depositForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const amount = document.getElementById('deposit-amount').value;
-            const description = document.getElementById('deposit-description').value;
-            
-            handleTransaction('deposito', {
-                monto: parseFloat(amount),
-                descripcion: description || 'Depósito'
-            });
-        });
-    }
-
-    if (withdrawForm) {
-        withdrawForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const amount = document.getElementById('withdraw-amount').value;
-            const description = document.getElementById('withdraw-description').value;
-            
-            handleTransaction('retiro', {
-                monto: parseFloat(amount),
-                descripcion: description || 'Retiro'
-            });
-        });
-    }
-
-    if (transferForm) {
-        transferForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const amount = document.getElementById('transfer-amount').value;
-            const description = document.getElementById('transfer-description').value;
-            const email = document.getElementById('transfer-email').value;
-            
-            handleTransaction('transferencia', {
-                monto: parseFloat(amount),
-                descripcion: description || 'Transferencia',
-                email_destino: email
-            });
-        });
-    }
-
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            fetch('/digital-wallet2/backend/api/logout.php', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            .finally(() => {
-                localStorage.removeItem('session_token');
-                window.location.href = 'login.html';
-            });
-        });
-    }
-
-    // Actualizar datos cada 30 segundos
-    setInterval(loadWalletData, 30000);
+    // Iniciar la aplicación
+    checkSession();
 });
