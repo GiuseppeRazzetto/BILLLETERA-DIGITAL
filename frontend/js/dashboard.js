@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    async function handleTransaction(type, formData) {
+    async function handleTransaction(tipo, formData) {
         try {
             const token_personal = formData.get('token_personal');
             if (!token_personal) {
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             let endpoint;
             const data = { token_personal };
 
-            switch(type) {
+            switch(tipo) {
                 case 'deposit':
                     endpoint = 'deposit.php';
                     data.monto = parseFloat(formData.get('monto'));

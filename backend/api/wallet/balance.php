@@ -93,7 +93,7 @@ try {
     
     // Obtener las últimas transacciones
     $trans_stmt = $conn->prepare("
-        SELECT id, type, amount, description, created_at 
+        SELECT id, tipo, amount, description, created_at 
         FROM transactions 
         WHERE wallet_id = ? 
         ORDER BY created_at DESC 
@@ -119,7 +119,7 @@ try {
     while ($row = $trans_result->fetch_assoc()) {
         $transactions[] = [
             'id' => $row['id'],
-            'type' => $row['type'],
+            'tipo' => $row['tipo'],
             'amount' => $row['amount'],
             'description' => $row['description'],
             'created_at' => $row['created_at']
