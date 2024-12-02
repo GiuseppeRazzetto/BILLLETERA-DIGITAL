@@ -283,10 +283,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const responseData = await response.json();
             console.log('Respuesta del servidor:', responseData);
+
+            if (!response.ok) {
+                throw new Error(responseData.message || 'Error en la transacción');
+            }
             
             if (responseData.success) {
                 showToast('Éxito', responseData.message);
-                loadWalletData();
+                await loadWalletData(); // Recargar los datos de la billetera
                 return true;
             } else {
                 throw new Error(responseData.message || 'Error al procesar la transacción');
