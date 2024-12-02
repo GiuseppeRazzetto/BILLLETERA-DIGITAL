@@ -79,10 +79,10 @@ try {
     try {
         // Obtener usuario destino
         $stmt = prepareStatement($conn, '
-            SELECT u.id, w.id as wallet_id, u.email 
+            SELECT u.id, w.id as wallet_id, u.correo_electronico as email 
             FROM users u 
             JOIN wallets w ON u.id = w.user_id 
-            WHERE u.email = ?
+            WHERE u.correo_electronico = ?
         ');
         
         $stmt->bind_param('s', $data['email_destino']);
