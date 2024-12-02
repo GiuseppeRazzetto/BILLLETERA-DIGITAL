@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Verificar sesión primero
     const token = localStorage.getItem('session_token');
     if (!token) {
@@ -266,6 +266,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Iniciar verificación de sesión y carga de datos
+    try {
+        await checkSession();
+    } catch (error) {
+        console.error('Error al verificar sesión:', error);
+        localStorage.removeItem('session_token');
+        window.location.href = 'login.html';
+        return;
+    }
+
     // Event Listeners
     if (depositForm) {
         depositForm.addEventListener('submit', async function(e) {
@@ -309,7 +319,4 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = 'login.html';
         });
     }
-
-    // Iniciar la aplicación
-    checkSession();
 });
