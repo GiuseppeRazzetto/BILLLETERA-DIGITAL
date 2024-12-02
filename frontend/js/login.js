@@ -44,8 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    localStorage.setItem('session_token', data.session_token);
-                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('session_token', data.data.session_token);
+                    localStorage.setItem('user_email', data.data.user.email);
                     window.location.href = 'dashboard.html';
                 } else {
                     const errorData = data.message ? JSON.parse(data.message) : null;
