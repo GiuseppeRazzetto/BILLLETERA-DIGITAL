@@ -23,9 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     error_log("Balance.php - Iniciando...");
     
-    // Verificar si hay una sesión activa
-    $user = validateSessionToken();
-    error_log("Balance.php - Resultado validateSessionToken: " . ($user ? json_encode($user) : 'null'));
+    session_start();
+    error_log("Balance.php - Sesión iniciada");
+    
+    // Verificar el token de la sesión
+    $user = requireAuthentication($conn);
+    error_log("Balance.php - Usuario autenticado: " . json_encode($user));
     
     if (!$user) {
         throw new Exception('No hay sesión activa');
