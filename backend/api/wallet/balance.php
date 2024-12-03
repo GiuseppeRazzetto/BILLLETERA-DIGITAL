@@ -97,7 +97,7 @@ try {
             t.id, 
             t.tipo, 
             t.monto, 
-            COALESCE(t.descripcion, '-') as descripcion,
+            t.descripcion,
             t.fecha as created_at, 
             t.wallet_from_id, 
             t.wallet_to_id,
