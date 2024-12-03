@@ -137,8 +137,10 @@ try {
         $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) VALUES (?, ?, ?, ?, NOW(), ?, ?)');
         $tipo_transaccion_emisor = "Transferencia enviada";
         $monto_negativo = -abs($data['monto']); // Asegurar que sea negativo
-        $descripcion = $data['descripcion'] ?? "Transferencia enviada a " . $destinatario['email'];
-        $stmt->bind_param('idsiii', $user['wallet_id'], $monto_negativo, $tipo_transaccion_emisor, $descripcion, $user['wallet_id'], $destinatario['wallet_id']);
+        $descripcion_emisor = isset($data['descripcion']) && !empty($data['descripcion']) 
+            ? $data['descripcion'] 
+            : "Transferencia enviada a " . $destinatario['email'];
+        $stmt->bind_param('idsiii', $user['wallet_id'], $monto_negativo, $tipo_transaccion_emisor, $descripcion_emisor, $user['wallet_id'], $destinatario['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del emisor: " . $stmt->error);
         }
@@ -147,8 +149,10 @@ try {
         $stmt = prepareStatement($conn, 'INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) VALUES (?, ?, ?, ?, NOW(), ?, ?)');
         $tipo_transaccion_receptor = "Transferencia recibida";
         $monto_positivo = abs($data['monto']); // Asegurar que sea positivo
-        $descripcion = $data['descripcion'] ?? "Transferencia recibida de " . $user['correo_electronico'];
-        $stmt->bind_param('idsiii', $destinatario['wallet_id'], $monto_positivo, $tipo_transaccion_receptor, $descripcion, $user['wallet_id'], $destinatario['wallet_id']);
+        $descripcion_receptor = isset($data['descripcion']) && !empty($data['descripcion'])
+            ? $data['descripcion']
+            : "Transferencia recibida de " . $user['correo_electronico'];
+        $stmt->bind_param('idsiii', $destinatario['wallet_id'], $monto_positivo, $tipo_transaccion_receptor, $descripcion_receptor, $user['wallet_id'], $destinatario['wallet_id']);
         if (!$stmt->execute()) {
             throw new Exception("Error al registrar la transacción del receptor: " . $stmt->error);
         }
