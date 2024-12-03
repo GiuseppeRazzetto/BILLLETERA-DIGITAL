@@ -185,7 +185,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             let amountClass = '';
             let amountPrefix = '';
             
-            const tipo = transaction.tipo ? transaction.tipo.toLowerCase() : '';
+            const tipo = transaction.tipo ? transaction.tipo.toLowerCase().trim() : '';
+            const descripcion = transaction.descripcion || '-';
+            const monto = Math.abs(parseFloat(transaction.monto));
+
+            // Para debugging
+            console.log('Transacción:', {
+                tipo_original: transaction.tipo,
+                tipo_lower: tipo,
+                descripcion: transaction.descripcion,
+                monto: transaction.monto
+            });
             
             if (tipo.includes('depósito') || tipo.includes('deposito')) {
                 typeText = 'Depósito';
@@ -205,16 +215,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 amountPrefix = '+';
             } else {
                 typeText = transaction.tipo || '-';
-                amountClass = 'transaction-amount';
+                amountClass = transaction.monto < 0 ? 'transaction-amount withdraw' : 'transaction-amount deposit';
                 amountPrefix = transaction.monto < 0 ? '-' : '+';
             }
-            
-            const monto = Math.abs(parseFloat(transaction.monto));
             
             row.innerHTML = `
                 <td>${formatDate(transaction.created_at)}</td>
                 <td>${typeText}</td>
-                <td>${transaction.descripcion || '-'}</td>
+                <td>${descripcion}</td>
                 <td class="${amountClass}">${amountPrefix}${formatCurrency(monto)}</td>
             `;
             

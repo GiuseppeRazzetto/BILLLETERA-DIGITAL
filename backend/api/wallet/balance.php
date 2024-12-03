@@ -94,16 +94,18 @@ try {
     // Obtener las últimas transacciones
     $trans_stmt = $conn->prepare("
         SELECT 
-            id, 
-            tipo, 
-            monto, 
-            descripcion, 
-            fecha as created_at, 
-            wallet_from_id, 
-            wallet_to_id 
-        FROM transactions 
-        WHERE wallet_id = ? 
-        ORDER BY fecha DESC 
+            t.id, 
+            t.tipo, 
+            t.monto, 
+            COALESCE(t.descripcion, '-') as descripcion,
+            t.fecha as created_at, 
+            t.wallet_from_id, 
+            t.wallet_to_id,
+            w.user_id as current_user_id
+        FROM transactions t
+        JOIN wallets w ON t.wallet_id = w.id
+        WHERE t.wallet_id = ? 
+        ORDER BY t.fecha DESC 
         LIMIT 5
     ");
     
@@ -124,6 +126,7 @@ try {
     $transactions = [];
     
     while ($row = $trans_result->fetch_assoc()) {
+        error_log("Balance.php - Procesando transacción: " . json_encode($row));
         $transactions[] = [
             'id' => $row['id'],
             'tipo' => $row['tipo'],
