@@ -185,42 +185,37 @@ document.addEventListener('DOMContentLoaded', async function() {
             let amountClass = '';
             let amountPrefix = '';
             
-            switch(transaction.tipo) {
-                case 'Depósito':
-                case 'deposito':
-                    typeText = 'Depósito';
-                    amountClass = 'transaction-amount deposit';
-                    amountPrefix = '+';
-                    break;
-                case 'Retiro':
-                case 'retiro':
-                    typeText = 'Retiro';
-                    amountClass = 'transaction-amount withdraw';
-                    amountPrefix = '-';
-                    break;
-                case 'Transferencia enviada':
-                case 'transferencia_enviada':
-                    typeText = 'Transferencia enviada';
-                    amountClass = 'transaction-amount transfer-out';
-                    amountPrefix = '-';
-                    break;
-                case 'Transferencia recibida':
-                case 'transferencia_recibida':
-                    typeText = 'Transferencia recibida';
-                    amountClass = 'transaction-amount transfer-in';
-                    amountPrefix = '+';
-                    break;
-                default:
-                    typeText = transaction.tipo || '-';
-                    amountClass = 'transaction-amount';
-                    amountPrefix = transaction.monto < 0 ? '-' : '+';
+            const tipo = transaction.tipo ? transaction.tipo.toLowerCase() : '';
+            
+            if (tipo.includes('depósito') || tipo.includes('deposito')) {
+                typeText = 'Depósito';
+                amountClass = 'transaction-amount deposit';
+                amountPrefix = '+';
+            } else if (tipo.includes('retiro')) {
+                typeText = 'Retiro';
+                amountClass = 'transaction-amount withdraw';
+                amountPrefix = '-';
+            } else if (tipo.includes('transferencia enviada')) {
+                typeText = 'Transferencia enviada';
+                amountClass = 'transaction-amount transfer-out';
+                amountPrefix = '-';
+            } else if (tipo.includes('transferencia recibida')) {
+                typeText = 'Transferencia recibida';
+                amountClass = 'transaction-amount transfer-in';
+                amountPrefix = '+';
+            } else {
+                typeText = transaction.tipo || '-';
+                amountClass = 'transaction-amount';
+                amountPrefix = transaction.monto < 0 ? '-' : '+';
             }
+            
+            const monto = Math.abs(parseFloat(transaction.monto));
             
             row.innerHTML = `
                 <td>${formatDate(transaction.created_at)}</td>
                 <td>${typeText}</td>
                 <td>${transaction.descripcion || '-'}</td>
-                <td class="${amountClass}">${amountPrefix}${formatCurrency(Math.abs(transaction.monto))}</td>
+                <td class="${amountClass}">${amountPrefix}${formatCurrency(monto)}</td>
             `;
             
             transactionsList.appendChild(row);
