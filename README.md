@@ -4,6 +4,48 @@ A modern digital wallet web application with PHP backend and MySQL database.
 
 🌐 [View Live Demo](https://giusepperazzetto.github.io/digital-wallet2/home.html)
 
+## Dependencies
+
+### Frontend
+#### CSS Frameworks and Libraries
+- Bootstrap 5.3.2 (CSS Framework)
+- Font Awesome 6.0.0 (Icons)
+- Bootstrap Icons 1.11.1 (Additional Icons)
+
+#### JavaScript
+- Bootstrap 5.3.2 JS (Interactive Components)
+- Vanilla JavaScript (No additional frameworks)
+
+### Backend
+#### PHP
+- PHP ^8.0 (Minimum required version)
+- No additional Composer dependencies
+
+### Database
+- MySQL (via PHP mysqli extension)
+
+### Server
+- XAMPP (Apache + MySQL + PHP)
+- Render (Backend hosting)
+- GitHub Pages (Frontend hosting)
+
+### Key Features
+1. **Frontend**
+   - Responsive design using Bootstrap
+   - Modern interfaces with gradients and visual effects
+   - Complete icon system (Font Awesome + Bootstrap Icons)
+
+2. **Backend**
+   - RESTful API in pure PHP
+   - Session handling and authentication
+   - CRUD operations for transactions and users
+
+3. **Security**
+   - CORS enabled
+   - Password hashing
+   - Session tokens
+   - Input data validation
+
 ## Project Structure
 
 ```
