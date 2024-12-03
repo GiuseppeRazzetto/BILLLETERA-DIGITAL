@@ -2,6 +2,8 @@
 
 A modern digital wallet web application with PHP backend and MySQL database.
 
+🌐 [View Live Demo](https://giusepperazzetto.github.io/digital-wallet2/home.html)
+
 ## Project Structure
 
 ```
