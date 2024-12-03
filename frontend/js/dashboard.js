@@ -201,11 +201,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (tipo === '') {
                 if (transaction.wallet_from_id && transaction.wallet_to_id) {
                     if (transaction.monto < 0) {
-                        typeText = 'Transferencia enviada';
+                        typeText = `Transferencia enviada a ${transaction.to_email}`;
                         amountClass = 'transaction-amount transfer-out';
                         amountPrefix = '-';
                     } else {
-                        typeText = 'Transferencia recibida';
+                        typeText = `Transferencia recibida de ${transaction.from_email}`;
                         amountClass = 'transaction-amount transfer-in';
                         amountPrefix = '+';
                     }
@@ -219,11 +219,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 amountClass = 'transaction-amount withdraw';
                 amountPrefix = '-';
             } else if (tipo.includes('transferencia enviada')) {
-                typeText = 'Transferencia enviada';
+                typeText = `Transferencia enviada a ${transaction.to_email}`;
                 amountClass = 'transaction-amount transfer-out';
                 amountPrefix = '-';
             } else if (tipo.includes('transferencia recibida')) {
-                typeText = 'Transferencia recibida';
+                typeText = `Transferencia recibida de ${transaction.from_email}`;
                 amountClass = 'transaction-amount transfer-in';
                 amountPrefix = '+';
             } else {

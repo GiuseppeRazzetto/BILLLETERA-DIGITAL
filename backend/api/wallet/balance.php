@@ -101,9 +101,15 @@ try {
             t.fecha as created_at, 
             t.wallet_from_id, 
             t.wallet_to_id,
-            w.user_id as current_user_id
+            w.user_id as current_user_id,
+            u_from.email as from_email,
+            u_to.email as to_email
         FROM transactions t
         JOIN wallets w ON t.wallet_id = w.id
+        LEFT JOIN wallets w_from ON t.wallet_from_id = w_from.id
+        LEFT JOIN users u_from ON w_from.user_id = u_from.id
+        LEFT JOIN wallets w_to ON t.wallet_to_id = w_to.id
+        LEFT JOIN users u_to ON w_to.user_id = u_to.id
         WHERE t.wallet_id = ? 
         ORDER BY t.fecha DESC 
         LIMIT 5
@@ -134,7 +140,9 @@ try {
             'descripcion' => $row['descripcion'],
             'created_at' => $row['created_at'],
             'wallet_from_id' => $row['wallet_from_id'],
-            'wallet_to_id' => $row['wallet_to_id']
+            'wallet_to_id' => $row['wallet_to_id'],
+            'from_email' => $row['from_email'],
+            'to_email' => $row['to_email']
         ];
     }
     
