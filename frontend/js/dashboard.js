@@ -197,7 +197,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 monto: transaction.monto
             });
             
-            if (tipo.includes('depósito') || tipo.includes('deposito')) {
+            // Determinar tipo basado en la dirección de la transferencia
+            if (tipo === '') {
+                if (transaction.wallet_from_id && transaction.wallet_to_id) {
+                    if (transaction.monto < 0) {
+                        typeText = 'Transferencia enviada';
+                        amountClass = 'transaction-amount transfer-out';
+                        amountPrefix = '-';
+                    } else {
+                        typeText = 'Transferencia recibida';
+                        amountClass = 'transaction-amount transfer-in';
+                        amountPrefix = '+';
+                    }
+                }
+            } else if (tipo.includes('depósito') || tipo.includes('deposito')) {
                 typeText = 'Depósito';
                 amountClass = 'transaction-amount deposit';
                 amountPrefix = '+';
