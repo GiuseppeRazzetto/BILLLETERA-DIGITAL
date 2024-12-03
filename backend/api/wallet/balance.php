@@ -102,8 +102,8 @@ try {
             t.wallet_from_id, 
             t.wallet_to_id,
             w.user_id as current_user_id,
-            u_from.email as from_email,
-            u_to.email as to_email
+            u_from.correo_electronico as from_email,
+            u_to.correo_electronico as to_email
         FROM transactions t
         JOIN wallets w ON t.wallet_id = w.id
         LEFT JOIN wallets w_from ON t.wallet_from_id = w_from.id
