@@ -181,27 +181,39 @@ document.addEventListener('DOMContentLoaded', async function() {
         transactions.forEach(transaction => {
             const row = document.createElement('tr');
             
-            let typeText = transaction.tipo;
+            let typeText = '';
             let amountClass = '';
             let amountPrefix = '';
             
             switch(transaction.tipo) {
                 case 'Depósito':
+                case 'deposito':
+                    typeText = 'Depósito';
                     amountClass = 'transaction-amount deposit';
                     amountPrefix = '+';
                     break;
                 case 'Retiro':
+                case 'retiro':
+                    typeText = 'Retiro';
                     amountClass = 'transaction-amount withdraw';
                     amountPrefix = '-';
                     break;
                 case 'Transferencia enviada':
+                case 'transferencia_enviada':
+                    typeText = 'Transferencia enviada';
                     amountClass = 'transaction-amount transfer-out';
                     amountPrefix = '-';
                     break;
                 case 'Transferencia recibida':
+                case 'transferencia_recibida':
+                    typeText = 'Transferencia recibida';
                     amountClass = 'transaction-amount transfer-in';
                     amountPrefix = '+';
                     break;
+                default:
+                    typeText = transaction.tipo || '-';
+                    amountClass = 'transaction-amount';
+                    amountPrefix = transaction.monto < 0 ? '-' : '+';
             }
             
             row.innerHTML = `
