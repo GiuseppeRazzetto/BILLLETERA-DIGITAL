@@ -138,11 +138,24 @@ try {
             INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) 
             VALUES (?, ?, ?, ?, NOW(), ?, ?)
         ');
+        
+        error_log("Transfer.php - Preparando datos para transacción emisor");
+        
         $tipo_transaccion_emisor = "Transferencia enviada";
         $monto_negativo = -abs($data['monto']); // Asegurar que sea negativo
         $descripcion_emisor = isset($data['descripcion']) && $data['descripcion'] !== '' && $data['descripcion'] !== '0'
             ? $data['descripcion'] 
             : "Transferencia enviada a " . $destinatario['email'];
+            
+        error_log("Transfer.php - Datos de transacción emisor: " . json_encode([
+            'wallet_id' => $user['wallet_id'],
+            'monto' => $monto_negativo,
+            'tipo' => $tipo_transaccion_emisor,
+            'descripcion' => $descripcion_emisor,
+            'wallet_from_id' => $user['wallet_id'],
+            'wallet_to_id' => $destinatario['wallet_id']
+        ]));
+        
         $stmt->bind_param('idsiii', 
             $user['wallet_id'], 
             $monto_negativo, 
@@ -151,20 +164,37 @@ try {
             $user['wallet_id'], 
             $destinatario['wallet_id']
         );
+        
         if (!$stmt->execute()) {
+            error_log("Transfer.php - Error al ejecutar INSERT emisor: " . $stmt->error);
             throw new Exception("Error al registrar la transacción del emisor: " . $stmt->error);
         }
+        
+        error_log("Transfer.php - INSERT emisor ejecutado. ID: " . $stmt->insert_id);
 
         // Registrar transacción para el receptor (monto positivo)
         $stmt = prepareStatement($conn, '
             INSERT INTO transactions (wallet_id, monto, tipo, descripcion, fecha, wallet_from_id, wallet_to_id) 
             VALUES (?, ?, ?, ?, NOW(), ?, ?)
         ');
+        
+        error_log("Transfer.php - Preparando datos para transacción receptor");
+        
         $tipo_transaccion_receptor = "Transferencia recibida";
         $monto_positivo = abs($data['monto']); // Asegurar que sea positivo
         $descripcion_receptor = isset($data['descripcion']) && $data['descripcion'] !== '' && $data['descripcion'] !== '0'
             ? $data['descripcion']
-            : "Transferencia recibida de " . $user['correo_electronico'];
+            : "Transferencia recibida de " . $user['email'];
+            
+        error_log("Transfer.php - Datos de transacción receptor: " . json_encode([
+            'wallet_id' => $destinatario['wallet_id'],
+            'monto' => $monto_positivo,
+            'tipo' => $tipo_transaccion_receptor,
+            'descripcion' => $descripcion_receptor,
+            'wallet_from_id' => $user['wallet_id'],
+            'wallet_to_id' => $destinatario['wallet_id']
+        ]));
+        
         $stmt->bind_param('idsiii', 
             $destinatario['wallet_id'], 
             $monto_positivo, 
@@ -173,9 +203,13 @@ try {
             $user['wallet_id'], 
             $destinatario['wallet_id']
         );
+        
         if (!$stmt->execute()) {
+            error_log("Transfer.php - Error al ejecutar INSERT receptor: " . $stmt->error);
             throw new Exception("Error al registrar la transacción del receptor: " . $stmt->error);
         }
+        
+        error_log("Transfer.php - INSERT receptor ejecutado. ID: " . $stmt->insert_id);
 
         // Agregar log para verificar los datos
         error_log("Transfer.php - Transacción emisor registrada: " . json_encode([
