@@ -140,7 +140,7 @@ try {
         ');
         $tipo_transaccion_emisor = "Transferencia enviada";
         $monto_negativo = -abs($data['monto']); // Asegurar que sea negativo
-        $descripcion_emisor = isset($data['descripcion']) && !empty($data['descripcion']) 
+        $descripcion_emisor = isset($data['descripcion']) && $data['descripcion'] !== '' && $data['descripcion'] !== '0'
             ? $data['descripcion'] 
             : "Transferencia enviada a " . $destinatario['email'];
         $stmt->bind_param('idsiii', 
@@ -162,7 +162,7 @@ try {
         ');
         $tipo_transaccion_receptor = "Transferencia recibida";
         $monto_positivo = abs($data['monto']); // Asegurar que sea positivo
-        $descripcion_receptor = isset($data['descripcion']) && !empty($data['descripcion'])
+        $descripcion_receptor = isset($data['descripcion']) && $data['descripcion'] !== '' && $data['descripcion'] !== '0'
             ? $data['descripcion']
             : "Transferencia recibida de " . $user['correo_electronico'];
         $stmt->bind_param('idsiii', 
