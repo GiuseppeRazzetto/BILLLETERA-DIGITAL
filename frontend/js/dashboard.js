@@ -181,39 +181,34 @@ document.addEventListener('DOMContentLoaded', async function() {
         transactions.forEach(transaction => {
             const row = document.createElement('tr');
             
-            let typeText = '';
+            let typeText = transaction.tipo;
             let amountClass = '';
             let amountPrefix = '';
             
             switch(transaction.tipo) {
-                case 'deposito':
-                    typeText = 'Depósito';
+                case 'Depósito':
                     amountClass = 'transaction-amount deposit';
                     amountPrefix = '+';
                     break;
-                case 'retiro':
-                    typeText = 'Retiro';
+                case 'Retiro':
                     amountClass = 'transaction-amount withdraw';
                     amountPrefix = '-';
                     break;
-                case 'transferencia':
-                    if (transaction.wallet_from_id === transaction.wallet_id) {
-                        typeText = 'Transferencia enviada';
-                        amountClass = 'transaction-amount transfer-out';
-                        amountPrefix = '-';
-                    } else {
-                        typeText = 'Transferencia recibida';
-                        amountClass = 'transaction-amount transfer-in';
-                        amountPrefix = '+';
-                    }
+                case 'Transferencia enviada':
+                    amountClass = 'transaction-amount transfer-out';
+                    amountPrefix = '-';
+                    break;
+                case 'Transferencia recibida':
+                    amountClass = 'transaction-amount transfer-in';
+                    amountPrefix = '+';
                     break;
             }
             
             row.innerHTML = `
                 <td>${formatDate(transaction.created_at)}</td>
                 <td>${typeText}</td>
-                <td>${transaction.description || '-'}</td>
-                <td class="${amountClass}">${amountPrefix}${formatCurrency(transaction.amount)}</td>
+                <td>${transaction.descripcion || '-'}</td>
+                <td class="${amountClass}">${amountPrefix}${formatCurrency(Math.abs(transaction.amount))}</td>
             `;
             
             transactionsList.appendChild(row);
