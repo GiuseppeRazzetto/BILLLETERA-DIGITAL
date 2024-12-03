@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${formatDate(transaction.created_at)}</td>
                 <td>${typeText}</td>
                 <td>${transaction.descripcion || '-'}</td>
-                <td class="${amountClass}">${amountPrefix}${formatCurrency(Math.abs(transaction.amount))}</td>
+                <td class="${amountClass}">${amountPrefix}${formatCurrency(Math.abs(transaction.monto))}</td>
             `;
             
             transactionsList.appendChild(row);

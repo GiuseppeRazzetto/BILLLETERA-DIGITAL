@@ -96,8 +96,8 @@ try {
         SELECT 
             id, 
             tipo, 
-            monto as amount, 
-            descripcion as description, 
+            monto, 
+            descripcion, 
             fecha as created_at, 
             wallet_from_id, 
             wallet_to_id 
@@ -127,8 +127,8 @@ try {
         $transactions[] = [
             'id' => $row['id'],
             'tipo' => $row['tipo'],
-            'amount' => $row['amount'],
-            'description' => $row['description'],
+            'monto' => $row['monto'],
+            'descripcion' => $row['descripcion'],
             'created_at' => $row['created_at'],
             'wallet_from_id' => $row['wallet_from_id'],
             'wallet_to_id' => $row['wallet_to_id']
